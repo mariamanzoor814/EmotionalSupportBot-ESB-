@@ -1,0 +1,24 @@
+# Flask Framework
+Flask
+Flask-Login
+Flask-Session
+Flask-WTF
+
+# Form Validation
+WTForms
+email_validator
+
+# Core Utilities
+python-dotenv
+requests
+tenacity
+markupsafe
+Werkzeug
+
+# Firebase & Firestore
+firebase-admin
+google-cloud-firestore
+google-api-core
+
+# Gemini API (Google Generative AI)
+google-generativeai
