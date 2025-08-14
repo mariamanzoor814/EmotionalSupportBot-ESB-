@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>ESB Chat Interface</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='mood_analysis.css') }}">
+  <!-- highlight.js CSS theme -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+
+<!-- highlight.js library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+</head>
+<style>
+  .new-chat-btn {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+  width: 98%;                   /* wider */
+  margin: 1px auto;
+  padding: 0.45em 1.2em;        /* less height */
+  background: transparent;
+  color: #fff;
+  font-size: 1.08em;
+  font-weight: 400;
+  border: 1.5px solid #3c3f4a;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s, border 0.15s, box-shadow 0.15s;
+  box-shadow: none;
+  outline: none;
+  text-align: left;
+  min-height: 45px;             /* controls min height */
+  max-width: 370px;             /* controls the maximum width if needed */
+}
+
+.new-chat-btn i {
+  font-size: 1.15em;
+  font-weight: 300;
+}
+
+.new-chat-btn:hover, .new-chat-btn:focus {
+  background: #21232b;
+  border-color: #55576c;
+  box-shadow: 0 0 0 2px #27293a;
+}
+
+
+
+.chat-message {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 2.2em;
+}
+
+.message-row {
+  display: flex;
+  align-items: flex-end;
+  width: 100%;%
+}
+
+.avatar-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 48px;
+}
+
+.avatar-label {
+  width: 38px;
+  height: 38px;
+  background: #b1c4df;
+  color: #245;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 1.15em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.10);
+}
+
+.user-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 2px solid #3a7fd3;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.10);
+}
+
+.bot-bubble {
+  background: #24678a;
+  color: #e0f7fa;
+  border-radius: 16px 16px 16px 8px;
+  padding: 1em 1.2em;
+  min-width: 200px;
+  max-width: 540px;
+  margin-left: 0;
+  border: 1.5px solid #3fa2e5;
+  font-size: 1.07em;
+}
+
+.user-bubble {
+  background: #379c72;
+  color: #fff;
+  border-radius: 16px 16px 8px 16px;
+  padding: 1em 1.2em;
+  min-width: 70px;
+  max-width: 340px;
+  margin-right: 0.8em;
+  border: 1.5px solid #2fbf7f;
+  font-size: 1.07em;
+  text-align: left;
+  position: relative;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+}
+
+
+/* User messages: row is reversed and right-aligned */
+.user-message .message-row {
+  flex-direction: row;
+  justify-content: flex-end;
+}
+.user-message .user-bubble {
+  margin-left: 0;
+  margin-right: 0.8em;
+}
+.user-message .avatar-col {
+  margin-left: 0.2em;
+}
+
+/* Bot messages: left-aligned */
+.bot-message .message-row {
+  flex-direction: row;
+  justify-content: flex-start;
+}
+.bot-message .bot-bubble {
+  margin-left: 0.8em;
+}
+
+.bot-message .avatar-col {
+  margin-right: 0.2em;
+}
+
+/* Button row always below bubble+avatar row! */
+.button-row {
+  display: flex;
+  gap: 0.4em;
+  margin-top: 0.14em;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s;
+}
+
+/* Align button row left for bot, right for user */
+.bot-message > .button-row {
+  align-self: flex-start;
+  margin-left: 55px;
+}
+.user-message > .button-row {
+  align-self: flex-end;
+   margin-right: 58px;
+}
+
+.chat-message:hover .button-row {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Icon buttons */
+.icon-btn {
+  background: #23263a;
+  color: #c7d1e4;
+  border: none;
+  border-radius: 50%;
+  padding: 0.5em;
+  width: 2.3em;
+  height: 2.3em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.18em;
+  cursor: pointer;
+  transition: background 0.13s, color 0.13s;
+  outline: none;
+}
+.icon-btn:hover,
+.icon-btn:focus {
+  background: #38416b;
+  color: #fff;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .bot-bubble, .user-bubble {
+    max-width: 90vw;
+    font-size: 0.97em;
+  }
+}
+
+/* Inline code (like `this`) stays clean */
+/* Generic code block style inside bot bubble */
+.bot-bubble pre {
+  overflow-x: auto;
+  white-space: pre; /* Fix: prevent word-wrap */
+  background: #1e4e68;
+  padding: 1em;
+  border-radius: 8px;
+  font-size: 0.92em;
+  font-family: 'Courier New', monospace;
+  color: #fff;
+}
+
+/* Inner code (do not override syntax coloring) */
+.bot-bubble pre code {
+  background: none;
+  padding: 0;
+  color: inherit;
+}
+
+/* Scrollbar styling */
+.bot-bubble pre::-webkit-scrollbar {
+  height: 8px;
+}
+.bot-bubble pre::-webkit-scrollbar-track {
+  background: #1e4e68;
+}
+.bot-bubble pre::-webkit-scrollbar-thumb {
+  background: #4ab3ff;
+  border-radius: 4px;
+}
+.bot-bubble pre::-webkit-scrollbar-thumb:hover {
+  background: #3296e0;
+}
+
+/* Code block wrapper for label + button */
+.code-block-wrapper {
+  position: relative;
+  margin-top: 1em;
+  background: #1e4e68;
+  border-radius: 8px;
+  overflow: auto;
+}
+
+.code-lang-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: #3fa2e5;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 8px 0 8px 0;
+  font-size: 0.75em;
+  font-family: monospace;
+}
+
+.copy-btn {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  background: #3fa2e5;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.85em;
+  cursor: pointer;
+}
+.copy-btn:hover {
+  background: #24678a;
+}
+
+
+
+</style>
+<body>
+<script>
+  window.defaultAvatar = "https://i.pravatar.cc/100?img=12";
+</script>
+  <!-- Sidebar Navigation -->
+  <aside class="sidebar">
+    <div class="top-section">
+      <div class="logo">
+        <i class="fas fa-brain" aria-hidden="true"></i>
+      </div>
+      <nav class="nav-icons">
+        <a href="{{ url_for('dashboard') }}" title="Dashboard"><i class="fas fa-home"></i></a>
+        <a href="{{ url_for('mood_analysis') }}" title="Mood Analysis"><i class="fas fa-chart-bar"></i></a>
+        <a href="{{ url_for('chat') }}" title="Chatbot"><i class="fas fa-comment-dots"></i></a>
+        <a href="{{ url_for('mood_trends') }}" title="Mood Calendar"><i class="fas fa-calendar-alt"></i></a>
+      </nav>
+    </div>
+    <div class="bottom-section">
+      <a href="{{ url_for('settings') }}" title="Settings"><i class="fas fa-cog"></i></a>
+      <a href="{{ url_for('logout') }}" title="Logout">
+        <img src="https://i.pravatar.cc/100?img=12" class="avatar" alt="Logout Profile" />
+      </a>
+    </div>
+  </aside>
+
+  <!-- Side Panel Options -->
+<section class="side-panel">
+  <button class="new-chat-btn" onclick="location.href='{{ url_for('start_chat') }}'">
+    <i class="fas fa-plus"></i> New chat
+  </button>
+
+  <div class="chat-history">
+    {% if session_list %}
+      {% for session in session_list %}
+        <div class="chat-history-item">
+          <i class="fas fa-comment session-icon"></i>
+          <a href="{{ url_for('chat', chat_session_id=session.id) }}"
+             class="chat-history-btn{% if session.id == chat_session_id %} active{% endif %}">
+            {{ session.topic }}
+            <span class="chat-history-date">
+              {{ session.start_time.strftime('%Y-%m-%d %H:%M') }}
+            </span>
+          </a>
+          <button class="delete-chat-btn" title="Delete chat" onclick="confirmDelete('{{ session.id }}', event)">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="no-chats-msg">No previous chats found. Start a new conversation!</div>
+    {% endif %}
+  </div>
+
+  <div class="bottom-buttons">
+    <a href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    <a href="{{ url_for('feedback_form') }}"><i class="fas fa-comment-alt"></i> Feedback</a>
+    <a href="{{ url_for('help_page') }}"><i class="fas fa-question-circle"></i> Help</a>
+  </div>
+</section>
+
+  <!-- Main Dashboard Area -->
+  <main class="main-content" style="display: flex; flex-direction: column; height: 100vh;">
+  <header class="top-nav">
+    <div class="logo-text">ESB</div>
+    <div class="center-icons">
+      <i class="fas fa-sun" id="lightModeToggle" title="Light Mode"></i>
+      <i class="fas fa-moon" id="darkModeToggle" title="Dark Mode"></i>
+    </div>
+    <div class="right-avatar">
+      <img src="{{ avatar_url or url_for('static', filename='images/default_avatar.jpg') }}" alt="Profile Avatar">
+    </div>
+  </header>
+    <!-- Chat Messages Display -->
+    <div class="chat-window" id="chatWindow">
+      {% for message in chat_history %}
+        <div class="chat-message {{ 'user-message' if message.sender == 'user' else 'bot-message' }}">
+          <div class="message-row">
+            {% if message.sender == 'user' %}
+              <div class="message-bubble user-bubble">
+                {{ message.message }}
+              </div>
+              <div class="avatar-col">
+                <img class="user-avatar" src="https://i.pravatar.cc/100?img=12" alt="User Avatar">
+              </div>
+            {% else %}
+              <div class="avatar-col">
+                <div class="avatar-label">ESB</div>
+              </div>
+              <div class="message-bubble bot-bubble">
+                <div class="bot-response">
+                  {{ message.message | markdown | safe }}
+                </div>
+              </div>
+            {% endif %}
+          </div>
+          <div class="button-row">
+            {% if message.sender == 'bot' %}
+              <button class="icon-btn copy-button" onclick="copyToClipboard(this)" title="Copy"><i class="fas fa-copy"></i></button>
+              <button class="icon-btn speak-button" onclick="speakTextFromButton(this)" title="Speak"><i class="fas fa-volume-up"></i></button>
+            {% endif %}
+            <button class="icon-btn delete-message-btn" data-message-index="{{ loop.index0 }}" data-session-id="{{ chat_session_id }}" title="Delete"><i class="fas fa-trash"></i></button>
+          </div>
+        </div>
+      {% endfor %}
+      <div id="ajax-chat-messages"></div>
+      <div id="scroll-anchor" style="height: 80px;"></div>
+    </div>
+    
+    <!-- Chat Input Container -->
+    <div class="chat-input-bar">
+      <form id="chatForm" class="chat-form" autocomplete="off">
+        <textarea id="chatInput" class="chat-input" name="message" placeholder="Type a message..." required autofocus></textarea>
+        <button type="button" id="micButton" class="mic-button">
+          <i class="fas fa-microphone" id="micIcon"></i>
+        </button>
+        <button type="submit" class="send-button" id="sendButton">
+          <i class="fas fa-paper-plane"></i>
+        </button>
+      </form>
+    </div>    
+    
+  </main>
+
+  
+  <script>
+
+ marked.setOptions({
+  highlight: function(code, lang) {
+    if (lang && hljs.getLanguage(lang)) {
+      return hljs.highlight(code, { language: lang }).value;
+    }
+    return hljs.highlightAuto(code).value;
+  },
+  langPrefix: 'hljs language-',
+  breaks: true
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+  hljs.highlightAll();
+  addCopyButtonsToCodeBlocks();
+});
+
+  function addCopyButtonsToCodeBlocks() {
+    document.querySelectorAll('.bot-bubble pre').forEach((preBlock) => {
+      if (preBlock.parentElement.classList.contains('code-block-wrapper')) return;
+
+      const codeEl = preBlock.querySelector('code');
+      if (!codeEl) return;
+
+      const langClass = [...codeEl.classList].find(cls => cls.startsWith('language-'));
+      const lang = langClass ? langClass.replace('language-', '') : 'code';
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'code-block-wrapper';
+
+      const label = document.createElement('div');
+      label.className = 'code-lang-label';
+      label.textContent = lang.toUpperCase();
+
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'copy-btn';
+      copyBtn.title = 'Copy code';
+      copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
+
+      copyBtn.onclick = () => {
+        navigator.clipboard.writeText(codeEl.innerText).then(() => {
+          copyBtn.innerHTML = '<i class="fas fa-check"></i>';
+          setTimeout(() => {
+            copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
+          }, 1200);
+        });
+      };
+
+      preBlock.parentNode.replaceChild(wrapper, preBlock);
+      wrapper.appendChild(label);
+      wrapper.appendChild(copyBtn);
+      wrapper.appendChild(preBlock);
+    });
+  }
+
+  function addBotMessage(markdownText) {
+    const chat = document.getElementById("chat");
+    const html = marked.parse(markdownText);
+    const msgDiv = document.createElement("div");
+    msgDiv.className = "bot-message";
+    msgDiv.innerHTML = html;
+    chat.appendChild(msgDiv);
+}
+
+
+    const chatSessionId = "{{ chat_session_id }}";
+
+    // AJAX chat send
+   function addChatMessage(sender, message, timestamp) {
+  const chatWindow = document.getElementById('ajax-chat-messages');
+  let msgHtml = '';
+
+  if (sender === 'bot') {
+    const htmlMsg = marked.parse(message);
+    msgHtml = `<div class="chat-message bot-message">
+      <div class="message-row">
+        <div class="avatar-col"><div class="avatar-label">ESB</div></div>
+        <div class="message-bubble bot-bubble">
+          <div class="bot-response">${htmlMsg}</div>
+          <div class="timestamp">${timestamp}</div>
+        </div>
+      </div>
+    </div>`;
+  } else {
+    msgHtml = `<div class="chat-message user-message">
+      <div class="message-row">
+        <div class="message-bubble user-bubble">${message}<div class="timestamp">${timestamp}</div></div>
+        <div class="avatar-col"><img class="user-avatar" src="${window.defaultAvatar}" alt="User Avatar"></div>
+      </div>
+    </div>`;
+  }
+
+  chatWindow.insertAdjacentHTML('beforeend', msgHtml);
+  hljs.highlightAll();
+  addCopyButtonsToCodeBlocks();
+
+  setTimeout(() => {
+    document.getElementById('scroll-anchor').scrollIntoView({ behavior: 'smooth' });
+  }, 80);
+}
+
+    // AJAX form submit
+    document.getElementById('chatForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const textarea = document.getElementById('chatInput');
+      const msg = textarea.value.trim();
+      if (!msg) return;
+      textarea.value = '';
+      addChatMessage('user', msg, new Date().toLocaleString());
+      fetch('/ajax/chat/send', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          chat_session_id: chatSessionId,
+          message: msg
+        })
+      })
+      .then(resp => resp.json())
+      .then(data => {
+        if (data.reply) {
+          addChatMessage('bot', data.reply, new Date().toLocaleString());
+        }
+      });
+    });
+
+    // Theme and UI logic unchanged ...
+    const lightToggle = document.getElementById("lightModeToggle");
+    const darkToggle = document.getElementById("darkModeToggle");
+    if (localStorage.getItem("theme") === "light") {
+      document.body.classList.add("light-mode");
+    }
+    lightToggle.addEventListener("click", () => {
+      document.body.classList.add("light-mode");
+      localStorage.setItem("theme", "light");
+    });
+    darkToggle.addEventListener("click", () => {
+      document.body.classList.remove("light-mode");
+      localStorage.setItem("theme", "dark");
+    });
+
+    document.querySelectorAll('.delete-chat-btn').forEach(button => {
+      button.addEventListener('click', () => {
+        const sessionId = button.getAttribute('data-session-id');
+        fetch(`/delete-chat/${sessionId}`, {
+          method: 'DELETE',
+        })
+        .then(response => {
+          if (response.ok) {
+            location.reload();
+          } else {
+            console.error("Failed to delete chat");
+          }
+        })
+        .catch(error => {
+          console.error("Error deleting chat:", error);
+        });
+      });
+    });
+
+    // ... rest of your microphone, copy, speak, and delete message logic unchanged ...
+
+    const textarea = document.getElementById('chatInput');
+    textarea.addEventListener('input', function () {
+      this.style.height = 'auto'; 
+      this.style.height = Math.min(this.scrollHeight, 150) + 'px';
+    });
+
+    // Speech recognition logic unchanged...
+    let recognition;
+    let isListening = false;
+    let finalTranscript = '';
+    const micButton = document.getElementById('micButton');
+    const chatInput = document.getElementById('chatInput');
+    if ('webkitSpeechRecognition' in window) {
+      recognition = new webkitSpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+      recognition.onresult = function(event) {
+        let interimTranscript = '';
+        let newFinalTranscript = finalTranscript;
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            newFinalTranscript += event.results[i][0].transcript + ' ';
+          } else {
+            interimTranscript += event.results[i][0].transcript;
+          }
+        }
+        finalTranscript = newFinalTranscript;
+        chatInput.value = finalTranscript + interimTranscript;
+        chatInput.style.height = 'auto';
+        chatInput.style.height = (chatInput.scrollHeight) + 'px';
+      };
+      recognition.onerror = function(event) {
+        isListening = false;
+        micButton.classList.remove('listening');
+        chatInput.placeholder = 'Click mic to start speaking...';
+      };
+      recognition.onspeechend = function() {
+        recognition.stop();
+        isListening = false;
+        micButton.classList.remove('listening');
+        chatInput.placeholder = 'Click mic to start speaking...';
+      };
+      function startListening() {
+        if (!isListening) {
+          recognition.start();
+          isListening = true;
+          micButton.classList.add('listening');
+          chatInput.placeholder = 'Listening...';
+        }
+      }
+      function stopListening() {
+        if (isListening) {
+          recognition.stop();
+          isListening = false;
+          micButton.classList.remove('listening');
+          chatInput.placeholder = 'Click mic to start speaking...';
+        }
+      }
+      micButton.addEventListener('click', function() {
+        if (isListening) {
+          stopListening();
+        } else {
+          startListening();
+        }
+      });
+      chatInput.addEventListener('input', function() {
+        if (chatInput.value === '') {
+          finalTranscript = '';
+        }
+        chatInput.style.height = 'auto';
+        chatInput.style.height = (chatInput.scrollHeight) + 'px';
+      });
+    } else if (!('webkitSpeechRecognition' in window)) {
+      alert('Speech Recognition not supported in this browser!');
+    }
+
+    // Copy, speak, confirmDelete, delete-message, and Enter-to-send logic unchanged...
+    function copyToClipboard(button) {
+      const messageDiv = button.closest('.chat-message');
+      const botResponse = messageDiv.querySelector('.bot-response');
+      if (botResponse) {
+        const text = botResponse.textContent.trim();
+        navigator.clipboard.writeText(text)
+          .then(() => {
+            button.innerHTML = '<i class="fas fa-check"></i>';
+            setTimeout(() => {
+              button.innerHTML = '<i class="fas fa-copy"></i>';
+            }, 1200);
+          })
+          .catch(err => {
+            console.error('Error copying text: ', err);
+          });
+      }
+    }
+
+    let currentSpeakingButton = null;
+    function speakTextFromButton(button) {
+      const messageDiv = button.closest('.chat-message');
+      const botResponse = messageDiv.querySelector('.bot-response');
+      if (!('speechSynthesis' in window)) {
+        alert('Sorry, your browser does not support text-to-speech.');
+        return;
+      }
+      if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+        if (currentSpeakingButton) {
+          currentSpeakingButton.innerHTML = '<i class="fas fa-volume-up"></i>';
+          currentSpeakingButton = null;
+        }
+        return;
+      }
+      if (botResponse) {
+        const text = botResponse.textContent.trim();
+        if (text) {
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.onend = function() {
+            button.innerHTML = '<i class="fas fa-volume-up"></i>';
+            currentSpeakingButton = null;
+          };
+          utterance.onerror = function() {
+            button.innerHTML = '<i class="fas fa-volume-up"></i>';
+            currentSpeakingButton = null;
+          };
+          window.speechSynthesis.speak(utterance);
+          button.innerHTML = '<i class="fas fa-stop"></i>';
+          currentSpeakingButton = button;
+        }
+      }
+    }
+
+    function confirmDelete(chatId, event) {
+      event.stopPropagation();
+      if (confirm("Permanently delete this chat?")) {
+          fetch(`/delete-chat/${chatId}`, {
+              method: 'DELETE',
+              headers: {
+                  'Content-Type': 'application/json',
+                  'X-CSRFToken': '{{ csrf_token() }}'
+              }
+          })
+          .then(response => response.json())
+          .then(data => {
+              if (data.success) {
+                  window.location.reload();
+              } else {
+                  alert('Delete failed: ' + (data.error || 'Unknown error'));
+              }
+          })
+          .catch(error => console.error('Error:', error));
+      }
+    }  
+
+    document.querySelectorAll('.delete-message-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        if (!confirm('Are you sure you want to delete this message?')) {
+          return;
+        }
+        const messageIndex = this.dataset.messageIndex;
+        const sessionId = this.dataset.sessionId;
+        fetch(`/delete-message/${sessionId}/${messageIndex}`, {
+          method: 'DELETE'
+        })
+        .then(response => {
+          if (response.ok) {
+            alert('Message deleted successfully!');
+            location.reload();
+          } else {
+            alert('Failed to delete message');
+          }
+        });
+      });
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+      const chatInput = document.getElementById('chatInput');
+      const chatForm = document.getElementById('chatForm');
+      const sendButton = document.getElementById('sendButton');
+      chatInput.focus();
+      chatInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          sendButton.click();
+        }
+      });
+      chatForm.addEventListener('submit', function() {
+        setTimeout(() => chatInput.focus(), 100);
+      });
+    });
+  </script>
+</body>
+</html>

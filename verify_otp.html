@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify OTP | Emotional Support Bot</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='otp.css') }}">
+</head>
+<body>
+  <div class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+    <h2>Verify OTP</h2>
+    <p>Enter the OTP sent to your email to reset your password.</p>
+
+    <!-- OTP Input Form -->
+    <form method="POST" action="{{ url_for('verify_otp') }}">
+      {{ form.hidden_tag() }} <!-- Add CSRF Token -->
+      <input type="text" name="otp" id="otp" placeholder="Enter OTP" required>
+      <button type="submit">Verify OTP</button>
+    </form>    
+
+    <!-- Resend OTP Button -->
+    <button id="resendOtpBtn" onclick="resendOtp()">Resend OTP</button>
+    <p id="otpMessage"></p>
+
+    <a href="{{ url_for('forgot_password') }}">Back to Forgot Password</a>
+  </div>
+
+  <script>
+    function resendOtp() {
+      fetch("{{ url_for('resend_otp') }}", { method: "POST" })
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById("otpMessage").innerText = data.message || data.error;
+        })
+        .catch(error => {
+          document.getElementById("otpMessage").innerText = "Error resending OTP.";
+        });
+    }
+  </script>
+</body>
+</html>

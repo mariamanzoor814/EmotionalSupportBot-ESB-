@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Account Settings | ESB</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="{{ url_for('static', filename='profile.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+</head>
+<body>
+  <!-- Background Circles -->
+  <div class="circle circle1"></div>
+  <div class="circle circle2"></div>
+
+  <!-- Sidebar -->
+  <aside class="settings-sidebar">
+    <div class="sidebar-logo-wrap">
+      <img src="{{ url_for('static', filename='images/esb-logo.jpg') }}" alt="ESB Logo" class="sidebar-logo">
+    </div>
+    <nav>
+      <a href="{{ url_for('dashboard') }}" title="Dashboard"><i class="fas fa-home"></i></a>
+      <a href="{{ url_for('mood_analysis') }}" title="Mood Analysis"><i class="fas fa-chart-bar"></i></a>
+      <a href="{{ url_for('chat') }}" title="Chatbot"><i class="fas fa-comment-dots"></i></a>
+      <a href="{{ url_for('mood_trends') }}" title="Calendar"><i class="fas fa-calendar-alt"></i></a>
+      <a href="{{ url_for('settings') }}" title="Settings" class="active"><i class="fas fa-cog"></i></a>
+    </nav>
+    <div class="sidebar-avatar-wrap">
+      <img src="{{ gravatar }}" class="sidebar-avatar" alt="Avatar">
+    </div>
+  </aside>
+
+  <!-- Top Nav -->
+  <header class="settings-navbar">
+    <span class="esb-brand">ESB</span>
+    <img src="{{ gravatar }}" class="nav-avatar" alt="Avatar">
+  </header>
+
+  <!-- Main Content -->
+  <main class="settings-main">
+    <div class="settings-container glassy-settings-box">
+      <form method="POST" class="settings-form">
+        {{ form.hidden_tag() }}
+        
+          <!-- User's Name and Email below avatar -->
+          <div class="profile-edit-header">
+            <div class="edit-avatar-wrap">
+              <div class="edit-avatar-border">
+                  <img src="{{ gravatar }}" class="sidebar-avatar" alt="Avatar">
+              </div>
+            </div>
+            <div class="edit-profile-info">
+              <div class="edit-profile-name">{{ user.get('first_name','') }}</div>
+              <div class="edit-profile-email">{{ user.get('email','') }}</div>
+            </div>
+          </div>
+        <h2 class="settings-title">Account Settings</h2>
+        <div class="settings-row">
+          {{ form.first_name.label }}
+          {{ form.first_name(class="form-control") }}
+        </div>
+        <div class="settings-row">
+          {{ form.email.label }}
+          {{ form.email(class="form-control", readonly=True) }}
+        </div>
+        <div class="settings-row">
+          <button type="button" class="reset-btn" onclick="window.location.href='{{ url_for('reset_password') }}'">
+            <i class="fas fa-key"></i> Change Password
+          </button>
+        </div>
+        <div class="settings-row">
+          {{ form.save(class="save-btn") }}
+        </div>
+      </form>
+      <!-- LOGOUT BUTTON: use the same style as other buttons -->
+ <form action="{{ url_for('logout') }}" method="get">
+  <div class="danger-zone">
+    <button type="submit" class="logout-btn">
+      <i class="fas fa-sign-out-alt"></i> Logout
+    </button>
+    <div class="danger-desc">Click to securely log out of your account.</div>
+  </div>
+</form>
+    </div>
+  </main>
+</body>
+</html>

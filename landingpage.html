@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ESB | Emotional Support Bot</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Anta&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='landing_page.css') }}">
+</head>
+<style>
+.hero__curves-bg {
+  position: absolute;
+  top: 400px;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120vw;
+  aspect-ratio: 1000 / 500;
+  height: auto;
+  background-color: transparent;
+  background-image: url("{{ url_for('static', filename='images/curvedlines.svg') }}");
+  background-repeat: no-repeat;
+  background-position: center bottom;
+  background-size: 100% auto;
+  z-index: 1;
+  pointer-events: none;
+  user-select: none;
+}
+html { scroll-behavior: smooth; }
+</style>
+<body>
+  <!-- NAVBAR -->
+  <header class="navbar">
+    <div class="navbar__container">
+      <div class="navbar__logo">
+        <img src="{{ url_for('static', filename='images/esb-logo.jpg') }}" alt="ESB Logo" class="navbar__logo-img">
+        <span class="navbar__brand">ESB</span>
+      </div>
+      <nav class="navbar__nav">
+        <a href="{{ url_for('landing_page') }}" class="navbar__link">HOME</a>
+        <a href="#esb-contact-footer-section" class="navbar__link" id="about-link">ABOUT US</a>  
+        <a href="#features-excellence-section" class="navbar__link" id="services-link">SERVICES</a>
+      </nav>
+      <div class="navbar__actions">
+        <a href="{{ url_for('login') }}" class="navbar__action-btn navbar__action-btn--login">LOGIN</a>
+        <a href="{{ url_for('signup') }}" class="navbar__action-btn navbar__action-btn--getstarted">GET STARTED</a>
+      </div>
+    </div>
+    
+  </header>
+
+  <!-- HERO SECTION -->
+  <section class="hero">
+    <!-- Curved SVG Background -->
+    <div class="hero__curves-bg"></div>
+
+    <!-- Floating Icons -->
+    <div class="hero__icon hero__icon--1"><img src="{{ url_for('static', filename='images/logo_8.svg') }}" alt="icon1"></div>
+    <div class="hero__icon hero__icon--2"><img src="{{ url_for('static', filename='images/logo_5-1.svg') }}" alt="icon2"></div>
+    <div class="hero__icon hero__icon--3"><img src="{{ url_for('static', filename='images/logo_4.svg') }}" alt="icon3"></div>
+    <div class="hero__icon hero__icon--4"><img src="{{ url_for('static', filename='images/logo_1.svg') }}" alt="icon4"></div>
+    <div class="hero__icon hero__icon--5"><img src="{{ url_for('static', filename='images/logo_6.svg') }}" alt="icon5"></div>
+    <div class="hero__icon hero__icon--6"><img src="{{ url_for('static', filename='images/logo_7-1.svg') }}" alt="icon6"></div>
+    <div class="hero__icon hero__icon--7"><img src="{{ url_for('static', filename='images/logo_8.svg') }}" alt="icon7"></div>
+    <div class="hero__icon hero__icon--8"><img src="{{ url_for('static', filename='images/logo_2-1.svg') }}" alt="icon8"></div>
+
+    <!-- Hero Content -->
+    <div class="hero__content">
+      <h1>Welcome to Emotional<br>Support Bot</h1>
+      <div class="hero__desc">
+        <p>
+          Engage in compassionate conversations with our empathetic chatbot,<br>
+          offering emotional support during stressful moments.<br>
+          Enjoy secure, confidential interactions with personalized advice<br>
+          to enhance your well-being.
+        </p>
+      </div>
+    </div>
+
+    <!-- Base & Mascot -->
+    <div class="hero__disc-container">
+      <img src="{{ url_for('static', filename='images/hero-20gradient-p-1600.webp') }}" alt="gradient" class="gradient" />
+      <img src="{{ url_for('static', filename='images/1-4.webp') }}" alt="Disc Base" class="hero__disc-base" />
+    </div>
+
+    <div class="hero__mascot">
+      <div class="bot-wrapper">
+        <svg width="192" height="249" viewBox="0 0 192 249" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Legs -->
+          <path d="M102.203 214.481C110.195 214.481 116.685 222.214 116.685 231.739C116.685 241.264 110.195 248.998 102.203 248.998C94.2105 248.998 87.7212 241.264 87.7212 231.739C87.7212 222.214 94.2105 214.481 102.203 214.481Z" fill="url(#paint0_linear_713_855)"/>
+          <path d="M101.753 214.062C107.827 214.062 112.759 219.94 112.759 227.179C112.759 234.418 107.827 240.295 101.753 240.295C95.6784 240.295 90.7466 234.418 90.7466 227.179C90.7466 219.94 95.6784 214.062 101.753 214.062Z" fill="#98FF37"/>
+          
+          <!-- ====== BODY GROUP: GROUP BODY AND ARMS ====== -->
+          <g class="bot-body-group">
+            <!-- Body -->
+            <path d="M127.726 184.996L124.661 202.531C122.056 213.771 111.007 223.138 99.8358 223.138H88.8023C76.5427 222.838 64.8962 210.324 63.9767 201.631L61.3716 183.347C61.3716 172.421 77.6308 162.964 88.8023 162.964H99.8358C111.007 162.964 127.726 174.07 127.726 184.996Z" fill="url(#paint1_linear_713_855)"/>
+            <!-- Arms -->
+            <path class="bot-arm" d="M158.557 164.688L175.746 186.967C180.621 193.03 182.804 200.095 178.547 204.621C174.913 208.485 166.871 206.309 159.965 201.871L137.043 186.477C130.896 180.671 130.728 171.087 136.669 165.07C142.61 159.054 152.41 158.883 158.557 164.688Z" fill="url(#paint3_linear_713_855)"/>
+            <path class="bot-arm" d="M53.0984 185.936L29.4531 201.551C23.0079 205.993 15.6802 207.752 11.2787 203.356C7.52113 199.602 10.1617 191.862 15.0524 185.35L31.965 163.773C38.2134 158.075 48.0098 158.417 53.8455 164.537C59.6813 170.657 59.3468 180.238 53.0984 185.936Z" fill="url(#paint4_linear_713_855)"/>
+          </g>
+          <!-- Head -->
+          <g class="bot-head">
+            <path d="M93.7061 23.2832C137.547 23.2832 170.943 55.4159 174.925 94.6225C179.523 139.884 137.547 156.07 93.7061 156.07C49.8654 156.07 9.11537 139.584 13.7127 94.6225C17.7216 55.4183 49.8654 23.2832 93.7061 23.2832Z" fill="url(#paint2_linear_713_855)"/>
+            <path d="M80.8098 44.8528C111.06 44.8528 134.951 67.6307 137.771 94.6763C141.306 128.582 111.043 123.737 80.7929 123.737C50.5428 123.737 21.469 129.481 25.3077 93.9272C28.2269 66.8915 50.5597 44.8528 80.8098 44.8528Z" fill="#4E862B"/>
+            <ellipse class="bot-eye" cx="51.7" cy="89" rx="8" ry="15" fill="#D9E969"/>
+            <ellipse class="bot-eye" cx="111.5" cy="89" rx="8" ry="15" fill="#D9E969"/>
+            <path d="M67.5957 101.68C67.5957 101.68 68.0555 115.543 82.6135 115.019C94.4909 114.59 95.4861 102.129 95.4861 102.129L67.5957 101.68Z" fill="#D9E969"/>
+            <path class="bot-antenna" d="M139.066 43.2911L159.218 3.5" stroke="#D9E969" stroke-width="5.1" stroke-linecap="round"/>
+            <path d="M140.05 41.186C142.866 42.5836 144.334 45.2827 143.326 47.2095C142.318 49.1363 139.213 49.5659 136.397 48.1684C133.581 46.7708 132.113 44.0716 133.121 42.1449C134.129 40.2181 137.234 39.7884 140.05 41.186Z" fill="#98FF37"/>
+            <path d="M140.05 41.186C142.866 42.5836 144.334 45.2827 143.326 47.2095C142.318 49.1363 139.213 49.5659 136.397 48.1684C133.581 46.7708 132.113 44.0716 133.121 42.1449C134.129 40.2181 137.234 39.7884 140.05 41.186Z" stroke="#173C29" stroke-width="0.32"/>
+            <ellipse cx="109.1" cy="188.7" rx="6" ry="6" fill="#D9E969"/>
+            <ellipse cx="21.7" cy="95.6" rx="15.5" ry="15.1" fill="#4E862B"/>
+            <ellipse cx="175.8" cy="95.6" rx="15.5" ry="15.1" fill="#4E862B"/>
+            <path d="M175.232 97.0204C175.232 97.0204 177.64 109.783 165.271 118.902C145.349 133.589 116.692 130.592 116.692 130.592" stroke="#D9E969" stroke-width="5.1" stroke-linecap="round"/>
+            <path d="M128.109 130.892H117.076" stroke="#D9E969" stroke-width="12.8" stroke-linecap="round"/>
+          </g>
+          <defs>
+            <linearGradient id="paint0_linear_713_855" x1="101.603" y1="215.286" x2="101.603" y2="252.486" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#143021"/>
+              <stop offset="0.5" stop-color="#98FF38"/>
+              <stop offset="1" stop-color="#143021"/>
+            </linearGradient>
+            <linearGradient id="paint1_linear_713_855" x1="35.4733" y1="189.192" x2="138.451" y2="191.699" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#143021"/>
+              <stop offset="0.5" stop-color="#98FF38"/>
+              <stop offset="1" stop-color="#143021"/>
+            </linearGradient>
+            <linearGradient id="paint2_linear_713_855" x1="-35.0189" y1="96.421" x2="150.713" y2="95.7942" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#143021"/>
+              <stop offset="0.5" stop-color="#98FF38"/>
+              <stop offset="1" stop-color="#143021"/>
+            </linearGradient>
+            <linearGradient id="paint3_linear_713_855" x1="126.049" y1="153.68" x2="179.335" y2="209.144" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#143021"/>
+              <stop offset="0.5" stop-color="#98FF38"/>
+              <stop offset="1" stop-color="#143021"/>
+            </linearGradient>
+            <linearGradient id="paint4_linear_713_855" x1="66.0292" y1="154.764" x2="8.91166" y2="206.422" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#143021"/>
+              <stop offset="0.5" stop-color="#98FF38"/>
+              <stop offset="1" stop-color="#143021"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+    </div>
+
+    <div class="mission-hero-heading">
+      Our Mission: Redefining Creativity With Technology
+    </div>
+  </section>
+
+  <!-- MISSION CARDS SECTION -->
+  <section class="mission-visual-section">
+    <div class="mission-heading-wrap">
+      <h2 class="mission-heading">
+        Our Mission: Redefining<br>
+        Creativity With Technology
+      </h2>
+    </div>
+    <div class="mission-features-slider-bg">
+      <img src="{{ url_for('static', filename='images/1-p-800-1.png') }}" alt="" class="testimonial-gradient-img testimonial-gradient-img--topleft" aria-hidden="true" />
+      <img src="{{ url_for('static', filename='images/3-2.webp') }}" alt="" class="testimonial-gradient-img testimonial-gradient-img--bottomright" aria-hidden="true" />
+      <div class="mission-cards-row">
+        <div class="mission-card gradient-card">
+          <div class="mission-card-title">REAL-TIME EMOTIONAL SUPPORT</div>
+          <div class="mission-card-desc">
+            Access immediate emotional support through<br>
+            an intuitive and responsive chatbot experience
+          </div>
+          <div class="mission-card-graph mission-card-graph--right">
+            <img src="{{ url_for('static', filename='images/card-body-20-1-.webp') }}" alt="Support Graph">
+          </div>
+        </div>
+        <div class="mission-card center-card">
+          <div class="mission-card-icons mission-card-icons--center">
+            <img src="{{ url_for('static', filename='images/group-202427-20-1-.webp') }}" alt="Personalized Icons">
+          </div>
+          <div class="mission-card-title center-title">PERSONALIZED TIPS</div>
+          <div class="mission-card-desc center-desc">
+            Get tailored advice for improving emotional well-being.<br>
+            Receive personalized advice and actionable strategies to enhance your emotional well-being and resilience
+          </div>
+        </div>
+        <div class="mission-card gradient-card">
+          <div class="mission-card-title">VISUALIZING MOOD TRENDS</div>
+          <div class="mission-card-desc">
+            To track and visualize user mood trends over time through sentiment analysis.
+          </div>
+          <div class="mission-card-graph mission-card-graph--left">
+            <img src="{{ url_for('static', filename='images/card-body-20-2-.webp') }}" alt="Mood Trends Graph">
+          </div>
+        </div>
+      </div>
+      <div class="wanna-talk-section">
+        <span class="wanna-talk-text">Wanna Talk</span>
+        <div class="wanna-talk-avatar">
+          <img src="{{ url_for('static', filename='images/5febe41a0fb7a6a850d243d0ead58dd7-sticker-201.webp') }}" alt="Wanna Talk Icon">
+          <div class="wanna-talk-lightbulb"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="features-excellence-section" id="features-excellence-section">
+    <div class="features-excellence-container">
+      <h2 class="features-excellence-title">Features Excellence</h2>
+      <div class="features-excellence-grid">
+        <div class="features-excellence-col">
+          <div class="feature-block">
+            <div class="feature-icon feature-icon--glow">
+              <img src="{{ url_for('static', filename='images/icon-empathy.svg') }}" alt="Empathetic Conversations Icon">
+            </div>
+            <div>
+              <h3 class="feature-block-title">Empathetic Conversations</h3>
+              <p class="feature-block-desc">
+                Our chatbot provides real-time emotional support, engaging in compassionate and empathetic conversations to help users manage their emotions in stressful situations.
+              </p>
+            </div>
+          </div>
+          <div class="feature-block">
+            <div class="feature-icon feature-icon--glow">
+              <img src="{{ url_for('static', filename='images/icon-mood.svg') }}" alt="Mood Tracking Icon">
+            </div>
+            <div>
+              <h3 class="feature-block-title">Mood Tracking</h3>
+              <p class="feature-block-desc">
+                We offer mood tracking features that allow users to monitor their emotional trends over time, helping them recognize patterns and make informed decisions for self-care.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="features-excellence-col">
+          <div class="feature-block">
+            <div class="feature-icon feature-icon--glow">
+              <img src="{{ url_for('static', filename='images/icon-lock.svg') }}" alt="Secure Integration Icon">
+            </div>
+            <div>
+              <h3 class="feature-block-title">Secure Integration</h3>
+              <p class="feature-block-desc">
+                We prioritize user privacy by ensuring that all interactions with the chatbot are confidential and secure, providing a safe space for users to seek support.
+              </p>
+            </div>
+          </div>
+          <div class="feature-block">
+            <div class="feature-icon feature-icon--glow">
+              <img src="{{ url_for('static', filename='images/icon-ai.svg') }}" alt="AI-Powered Advice Icon">
+            </div>
+            <div>
+              <h3 class="feature-block-title">AI-Powered Advice</h3>
+              <p class="feature-block-desc">
+                Our chatbot offers personalized suggestions and advice, helping users improve their emotional well-being by providing tailored tips based on their emotional state.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="features-excellence-visuals">
+          <img src="{{ url_for('static', filename='images/laptop.svg') }}" alt="Hands on laptop" class="features-laptop-img">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TESTIMONIALS SLIDER SECTION   -->
+  <section class="testimonials-slider-section">
+    <div class="esb-team-heading-section">
+      <h2 class="esb-team-heading">
+        Meet The Hearts Behind<br>
+        Emotional Support At ESB
+      </h2>
+      <div class="esb-team-subheading">
+        Real Experiences. Real Support.<br>
+        See how ESB (Emotional Support Bot) helps people boost their moods, manage emotions, and find daily encouragement.
+      </div>
+    </div>
+    <div class="testimonials-slider-bg">
+      <img src="{{ url_for('static', filename='images/1-p-800-1.png') }}" alt="" class="testimonial-gradient-img testimonial-gradient-img--topleft" aria-hidden="true" />
+      <img src="{{ url_for('static', filename='images/3-2.webp') }}" alt="" class="testimonial-gradient-img testimonial-gradient-img--bottomright" aria-hidden="true" />
+      <button class="testimonials-arrow testimonials-arrow--left" aria-label="Previous testimonial">&#8592;</button>
+      <div class="testimonials-slider-content">
+        <div class="testimonial-slide active">
+          <div class="testimonial-image-wrapper">
+            <img src="{{ url_for('static', filename='images/small-20blog-3.jpg') }}" alt="Testimonial Author" class="testimonial-image" />
+          </div>
+          <blockquote class="testimonial-quote">
+            "ESB always checks in with me and helps me manage my stress. The daily tips really lift my mood."
+          </blockquote>
+          <div class="testimonial-author-row">
+            <span class="testimonial-author">Isabelle Morton</span>
+            <span class="testimonial-dot">&bull;</span>
+            <span class="testimonial-role">University Student</span>
+          </div>
+        </div>
+        <div class="testimonial-slide">
+          <div class="testimonial-image-wrapper">
+            <img src="{{ url_for('static', filename='images/1-1.webp') }}" alt="Testimonial Author" class="testimonial-image" />
+          </div>
+          <blockquote class="testimonial-quote">
+            "The mood-tracking feature helps me recognize patterns and take better care of my emotional health."
+          </blockquote>
+          <div class="testimonial-author-row">
+            <span class="testimonial-author">Alex Kim</span>
+            <span class="testimonial-dot">&bull;</span>
+            <span class="testimonial-role">Freelancer</span>
+          </div>
+        </div>
+        <div class="testimonial-slide">
+          <div class="testimonial-image-wrapper">
+            <img src="{{ url_for('static', filename='images/2.webp') }}" alt="Testimonial Author" class="testimonial-image" />
+          </div>
+          <blockquote class="testimonial-quote">
+            "Whenever I feel down, ESB gives me positive suggestions and tracks my progress. I feel listened to and supported."
+          </blockquote>
+          <div class="testimonial-author-row">
+            <span class="testimonial-author">Priya Nair</span>
+            <span class="testimonial-dot">&bull;</span>
+            <span class="testimonial-role">Working Parent</span>
+          </div>
+        </div>
+      </div>
+      <button class="testimonials-arrow testimonials-arrow--right" aria-label="Next testimonial">&#8594;</button>
+    </div>
+  </section>
+
+  <!-- ESB CONTACT HERO SECTION -->
+  <section class="esb-contact-hero-section">
+    <div class="esb-contact-hero-inner">
+      <div class="esb-contact-hero-heading">
+        <h2>
+          Looking For Answers? We’re<br>
+          Always Happy To Help!
+        </h2>
+      </div>
+      <div class="esb-contact-hero-avatar">
+        <img src="{{ url_for('static', filename='images/cc29cd16d1d11a737d8f55c60def93a9-sticker-201.webp') }}" alt="ESB Mascot">
+      </div>
+      <div class="esb-contact-hero-email-block">
+        <div class="esb-contact-hero-email-label">CONTACT US TODAY!</div>
+        <a href="mailto:info@example.com" class="esb-contact-hero-email">info@example.com</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- DISC & GRADIENT ARC SECTION -->
+  <section class="esb-disc-gradient-arc-section">
+    <div class="esb-disc-gradient-arc-inner">
+      <img src="{{ url_for('static', filename='images/2-p-500.webp') }}" class="esb-disc-img" alt="Disc Arc" />
+      <img src="{{ url_for('static', filename='images/1-p-500.png') }}" class="esb-gradient-img" alt="Gradient Arc" />
+    </div>
+  </section>
+
+  <!-- ESB CONTACT FOOTER CHAT SECTION -->
+  <section class="esb-contact-footer-section" id="esb-contact-footer-section">
+    <div class="esb-contact-footer-inner">
+      <div class="esb-contact-footer-col">
+        <span class="esb-contact-footer-title">Useful Nav</span>
+        <hr class="esb-contact-footer-divider">
+        <ul class="esb-contact-footer-links">
+          <li><a href="#">Explore yourself with ESB</a></li>
+          <li><a href="#">Ultimate Pricing</a></li>
+          <li><a href="#">Trusted Reviews</a></li>
+        </ul>
+        <hr class="esb-contact-footer-divider">
+        <div class="esb-contact-footer-note">
+          Try Emotional Support Bot (ESB)<br>
+          Unlock Potential
+        </div>
+      </div>
+      <div class="esb-contact-footer-col esb-contact-footer-center">
+        <span class="esb-contact-footer-title">Let's Chat!</span>
+        <form class="esb-contact-footer-form">
+          <div class="esb-contact-footer-form-row">
+            <input type="text" placeholder="First name">
+            <input type="text" placeholder="Last name">
+          </div>
+          <input type="email" placeholder="Your email">
+          <textarea placeholder="Start the conversation"></textarea>
+          <button type="submit" class="esb-contact-footer-submit">
+            <img src="{{ url_for('static', filename='images/send-bot.svg') }}" alt="Send">
+          </button>
+        </form>
+      </div>
+      <div class="esb-contact-footer-col">
+        <span class="esb-contact-footer-title">Help Desk</span>
+        <hr class="esb-contact-footer-divider">
+        <ul class="esb-contact-footer-links">
+          <li><a href="#">Mental well-being</a></li>
+          <li><a href="#">Got Questions?</a></li>
+          <li><a href="#">Stay Connected</a></li>
+        </ul>
+        <hr class="esb-contact-footer-divider">
+        <div class="esb-contact-footer-note">
+          <a href="#">Follow us Now</a><br>
+          <a href="#">Tweet with Team</a>
+        </div>
+      </div>
+    </div>
+    <div class="esb-contact-footer-bottom">
+      <span>© ESB. All Rights Reserved.</span>
+      <br>
+      <span>Powered by Emotional Support Bot</span>
+    </div>
+  </section>
+
+  <script>
+    // Simple testimonials slider
+    const slides = document.querySelectorAll('.testimonial-slide');
+    let current = 0;
+
+    function showSlide(idx) {
+      slides.forEach((slide, i) => {
+        slide.classList.toggle('active', i === idx);
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      document.querySelector('.testimonials-arrow--left').addEventListener('click', () => {
+        current = (current - 1 + slides.length) % slides.length;
+        showSlide(current);
+      });
+      document.querySelector('.testimonials-arrow--right').addEventListener('click', () => {
+        current = (current + 1) % slides.length;
+        showSlide(current);
+      });
+      showSlide(current);
+    });
+
+    document.querySelectorAll('a.navbar__link').forEach(link => {
+  link.addEventListener('click', function(e) {
+    const href = this.getAttribute('href');
+    if (href && href.startsWith('#')) {
+      e.preventDefault();
+      const section = document.querySelector(href);
+      if (section) {
+        section.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  });
+});
+  </script>
+</body>
+</html>

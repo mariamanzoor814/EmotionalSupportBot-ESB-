@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Mood History | Emotional Support Bot</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='moodTrends.css') }}">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    /* Add dropdown styling */
+    .dropdown {
+      position: relative;
+      display: inline-block;
+      margin-left: auto;
+    }
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      right: 0;
+      background: #31333f;
+      min-width: 120px;
+      border-radius: 10px;
+      box-shadow: 0 8px 24px #0003;
+      z-index: 12;
+    }
+    .dropdown-content button {
+      width: 100%;
+      padding: 12px;
+      background: none;
+      border: none;
+      color: #fff;
+      text-align: left;
+      cursor: pointer;
+      font-size: 1em;
+      border-radius: 10px;
+    }
+    .dropdown-content button:hover,
+    .dropdown-content button.selected {
+      background: #599b97;
+      color: #18181b;
+    }
+    .dropdown:hover .dropdown-content {
+      display: block;
+    }
+    .date-pill.selected {
+      background: #1060e3;
+      color: #fff;
+      box-shadow: 0 4px 18px #1060e355;
+    }
+    .date-pill {
+      cursor: pointer;
+    }
+
+    
+
+/* TOP NAVBAR */
+.top-nav {
+  height: 60px;
+  width: calc(100% - 100px); /* 70px is sidebar width */
+  margin-left: 70px; /* Push it right so it starts after sidebar */
+  left: 0;
+  top: 0;
+  position: fixed; /* Use fixed for a "sticky" header above sidebar */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 30px;
+  z-index: 100;
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border-bottom: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+.top-nav .logo-text {
+  font-weight: 600;
+  font-size: 22px;
+  color: #fff;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}
+
+.top-nav .center-icons {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+}
+
+.top-nav .center-icons i {
+  font-size: 16px;
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border-radius: 50%;
+  padding: 8px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.top-nav .center-icons i:hover {
+  background-color: rgba(255,255,255,0.28);
+  color: #29b9f1;
+}
+
+.top-nav .right-avatar img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: 70px;
+  min-width: 70px;
+  height: 80vh;            /* Reduce height, e.g., 80% of viewport */
+  position: fixed;         /* Add fixed so it stays in place */
+  top: 0px;               /* Moves it 40px from the very top */
+  left: 0;
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border-right: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 0;
+  border-radius: 0 8px 8px 0;
+  z-index: 100;
+}
+
+.logo {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  overflow: hidden;
+  background-color: rgba(14, 14, 14, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.nav-icons {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  align-items: center;
+  height: 100%;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.nav-icons i {
+  color: #e3e7ee;
+  font-size: 22px;
+  padding: 11px;
+  cursor: pointer;
+  background: rgba(255,255,255,0.07);
+  border-radius: 50%;
+  transition: background 0.3s, color 0.3s;
+}
+
+.nav-icons i:hover {
+  background: rgba(45, 167, 204, 0.18);
+  color: #18ccf7;
+}
+
+.bottom-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  margin-bottom: 7px;
+}
+  </style>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="top-section">
+      <div class="logo">
+        <img src="{{ url_for('static', filename='/images/esb-logo.jpg') }}" alt="logo">
+      </div>
+      <nav class="nav-icons">
+        <a href="{{ url_for('dashboard') }}" title="Dashboard"><i class="fas fa-home"></i></a>
+        <a href="{{ url_for('mood_analysis') }}" title="Mood Analysis"><i class="fas fa-chart-bar"></i></a>
+        <a href="{{ url_for('chat') }}" title="Chatbot"><i class="fas fa-comment-dots"></i></a>
+        <a href="{{ url_for('calendar_page') }}" title="Mood Calendar"><i class="fas fa-calendar-alt"></i></a>
+      </nav>
+    </div>
+    <div class="bottom-section">
+      <a href="{{ url_for('settings') }}" title="Settings"><i class="fas fa-cog"></i></a>
+      <a href="{{ url_for('logout') }}" title="Logout">
+        <img src="https://i.pravatar.cc/100?img=12" class="avatar" alt="Logout Profile" />
+      </a>
+    </div>
+  </aside>
+    <main>
+    <header class="top-nav">
+      <div class="logo-text">ESB</div>
+      <div class="center-icons">
+        <i class="fas fa-sun" id="lightModeToggle" title="Light Mode"></i>
+        <i class="fas fa-moon" id="darkModeToggle" title="Dark Mode"></i>
+      </div>
+      <div class="right-avatar">
+        <img src="https://i.pravatar.cc/100?img=12" alt="Profile Avatar" />
+      </div>
+    </header>
+      <div class="circle-bg bg1"></div>
+      <div class="circle-bg bg2"></div>
+      <div class="circle-bg bg3"></div>
+      <div class="glass-card">
+        <div class="date-row" id="date-row">
+          {% for day in mood_days %}
+            <button class="date-pill{% if day.day == selected_day %} selected{% endif %}" 
+              data-date="{{ day.date }}" onclick="selectPeriod('day', '{{ day.date }}', this)">
+              {{ day.label }}<br>{{ day.day }}
+            </button>
+          {% endfor %}
+          <div class="dropdown">
+            <button class="weekly-btn" id="period-btn">
+              <span id="selected-period-text">Weekly</span>
+            
+            </button>
+            <div class="dropdown-content">
+              <button onclick="selectPeriod('week', null, this)" class="selected" id="week-btn">Weekly</button>
+              <button onclick="selectPeriod('month', null, this)" id="month-btn">Monthly</button>
+              <button onclick="selectPeriod('year', null, this)" id="year-btn">Yearly</button>
+            </div>
+          </div>
+        </div>
+        <!-- Mood Label & Summary -->
+        <div class="section-header" id="mood-label">{{ mood_label }}</div>
+        <div class="mood-box" id="mood-label-box">
+          <strong>Overall Confidence Score: <span id="confidence-score">{{ confidence_score }}</span>/10</strong>
+          <ul id="mood-label-ul">
+            {% for item in mood_summary %}
+              <li>{{ item }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        <div class="section-header">Quick Tips to Improve:</div>
+        <div class="mood-box" id="tips-box">
+          <ul id="tips-ul">
+            {% for tip in tips %}
+              <li><span class="tip-check">✅</span>{{ tip }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        <div class="section-header" style="margin-top:38px;">Mood Trends</div>
+        <div class="mood-trends-card">
+          <div class="bar-chart" id="bar-chart">
+            {% for i in range(mood_trends|length) %}
+              <div style="display:flex;flex-direction:column;align-items:center;">
+                <div class="bar" style="height:{{ mood_trends[i]|int }}px;"></div>
+                <div class="bar-label">{{ mood_trends_labels[i] }}</div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="section-header">Your Overall Mood This Period</div>
+        <div class="mood-pie-row">
+          <div class="mood-legend-box" id="legend-box">
+            {% for mood in overall_mood %}
+              <div class="mood-legend-item"><span class="legend-swatch {{ mood.color }}"></span>{{ mood.percent }}%{{ mood.label }}</div>
+            {% endfor %}
+          </div>
+          <div class="donut-chart-wrap">
+            <div class="donut-chart">
+              <span class="donut-inner-text" id="donut-label">{{ donut_label|safe }}</span>
+              <svg viewBox="0 0 42 42" class="donut-svg" id="donut-svg">
+                {% set offset = 0 %}
+                {% for seg in donut_data %}
+                  <circle
+                    class="donut-segment {{ seg.class }}"
+                    cx="21" cy="21" r="15.9155"
+                    stroke-width="4"
+                    fill="none"
+                    stroke-dasharray="{{ seg.percent }} {{ 100-seg.percent }}"
+                    stroke-dashoffset="-{{ offset }}"
+                  />
+                  {% set offset = offset + seg.percent %}
+                {% endfor %}
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script>
+    let currentPeriod = 'week';
+    let selectedDate = null;
+
+    function selectPeriod(period, date, el) {
+      currentPeriod = period;
+      selectedDate = date;
+
+      // Update period button text
+      if (period === 'day') {
+        document.getElementById('selected-period-text').innerText = "Day";
+      } else if (period === 'week') {
+        document.getElementById('selected-period-text').innerText = "Weekly";
+      } else if (period === 'month') {
+        document.getElementById('selected-period-text').innerText = "Monthly";
+      } else if (period === 'year') {
+        document.getElementById('selected-period-text').innerText = "Yearly";
+      }
+
+      // Highlight selected
+      document.querySelectorAll('.dropdown-content button').forEach(btn => btn.classList.remove('selected'));
+      if (period === 'week') document.getElementById('week-btn').classList.add('selected');
+      if (period === 'month') document.getElementById('month-btn').classList.add('selected');
+      if (period === 'year') document.getElementById('year-btn').classList.add('selected');
+
+      // Highlight day pill if selected
+      document.querySelectorAll('.date-pill').forEach(btn => btn.classList.remove('selected'));
+      if (period === 'day' && el) el.classList.add('selected');
+
+      // Fetch and update
+      fetchTrends(period, date);
+    }
+
+    function fetchTrends(period, date) {
+      let postData = { view_type: period };
+      if (period === 'day' && date) postData['date'] = date;
+      fetch('/get-mood-trends', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(postData)
+      }).then(resp => resp.json()).then(data => {
+        // Update bar chart, mood label, tips, donut, etc.
+        updateTrends(data);
+      });
+    }
+
+    function updateTrends(data) {
+      // Bar chart
+      const barChart = document.getElementById('bar-chart');
+      barChart.innerHTML = '';
+      for (let i = 0; i < data.mood_trends.length; i++) {
+        let div = document.createElement('div');
+        div.style.display = "flex";
+        div.style.flexDirection = "column";
+        div.style.alignItems = "center";
+        div.innerHTML = `<div class="bar" style="height:${parseInt(data.mood_trends[i])}px;"></div>
+                         <div class="bar-label">${data.mood_trends_labels[i]}</div>`;
+        barChart.appendChild(div);
+      }
+      // Mood label
+      document.getElementById('mood-label').innerText = data.mood_label;
+      document.getElementById('confidence-score').innerText = data.confidence_score;
+      // Mood summary
+      let mLabelUl = document.getElementById('mood-label-ul');
+      mLabelUl.innerHTML = '';
+      data.mood_summary.forEach(s => {
+        let li = document.createElement('li');
+        li.innerText = s;
+        mLabelUl.appendChild(li);
+      });
+      // Tips
+      let tipsUl = document.getElementById('tips-ul');
+      tipsUl.innerHTML = '';
+      data.tips.forEach(tip => {
+        let li = document.createElement('li');
+        li.innerHTML = `<span class="tip-check">✅</span>${tip}`;
+        tipsUl.appendChild(li);
+      });
+      // Mood legend
+      let legendBox = document.getElementById('legend-box');
+      legendBox.innerHTML = '';
+      data.overall_mood.forEach(mood => {
+        let div = document.createElement('div');
+        div.className = 'mood-legend-item';
+        div.innerHTML = `<span class="legend-swatch ${mood.color}"></span>${mood.percent}%${mood.label}`;
+        legendBox.appendChild(div);
+      });
+      // Donut
+      document.getElementById('donut-label').innerHTML = data.donut_label;
+      let donutSvg = document.getElementById('donut-svg');
+      // Replace donut segments dynamically
+      let offset = 0, svg = '';
+      data.donut_data.forEach(seg => {
+        svg += `<circle class="donut-segment ${seg.class}" cx="21" cy="21" r="15.9155" stroke-width="4" fill="none"
+        stroke-dasharray="${seg.percent} ${100-seg.percent}" stroke-dashoffset="-${offset}" />`;
+        offset += seg.percent;
+      });
+      donutSvg.innerHTML = svg;
+    }
+
+    // Initial
+    document.addEventListener("DOMContentLoaded", function() {
+      // Setup default (weekly)
+      selectPeriod('week', null, document.getElementById('week-btn'));
+    });
+
+  // Theme toggle with two always-visible buttons for light and dark mode
+
+function setTheme(mode) {
+  if (mode === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+    localStorage.setItem('themeMode', 'light');
+  } else {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    localStorage.setItem('themeMode', 'dark');
+  }
+}
+
+function getPreferredTheme() {
+  const stored = localStorage.getItem('themeMode');
+  if (stored) return stored;
+  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  // Set initial theme
+  setTheme(getPreferredTheme());
+
+  // Attach click handlers to both buttons
+  document.getElementById('lightModeToggle').addEventListener('click', function () {
+    setTheme('light');
+  });
+
+  document.getElementById('darkModeToggle').addEventListener('click', function () {
+    setTheme('dark');
+  });
+});  
+  </script>
+</body>
+</html>

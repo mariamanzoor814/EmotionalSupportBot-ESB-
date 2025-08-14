@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Feedback | Emotional Support Bot</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='feedback.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='alert.css') }}">
+</head>
+<body>
+  <div class="container">
+    <!-- (Optional) Flash Messages -->
+    <div class="flash-messages">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">
+              {{ message }}
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+    </div>
+    <!-- Left Side -->
+    <div class="welcome-section">
+      <h1>Feedback.!!</h1>
+      <button class="skip-btn" onclick="window.history.back()">
+        Take me back.!
+      </button>
+    </div>
+    <!-- Right Side -->
+    <div class="form-container">
+      <div class="circle circle1"></div>
+      <div class="circle circle2"></div>
+      <div class="login-form feedback-form">
+        <h2>Feedback</h2>
+        <p>We value your experience!</p>
+        <form method="POST" action="{{ url_for('feedback_form') }}">
+          {{ form.hidden_tag() }}
+
+          <div class="form-group">
+            {{ form.name(class="form-control", placeholder="Name") }}
+            {% for error in form.name.errors %}
+              <div class="text-danger">{{ error }}</div>
+            {% endfor %}
+          </div>
+          <div class="form-group">
+            {{ form.email(class="form-control", placeholder="Email Address") }}
+            {% for error in form.email.errors %}
+              <div class="text-danger">{{ error }}</div>
+            {% endfor %}
+          </div>
+          <div class="form-group">
+            <label class="experience-label" style="color:#18ffff;">Share your experience in scaling</label>
+            <div class="experience-row">
+              <div class="emoji-label"><span class="emoji" data-value="1">😖</span><div class="emoji-caption">Worst</div></div>
+              <div class="emoji-label"><span class="emoji" data-value="2">😟</span><div class="emoji-caption">Not Good</div></div>
+              <div class="emoji-label"><span class="emoji" data-value="3">😑</span><div class="emoji-caption">Fine</div></div>
+              <div class="emoji-label"><span class="emoji" data-value="4">🙂</span><div class="emoji-caption">Look Good</div></div>
+              <div class="emoji-label"><span class="emoji" data-value="5">😍</span><div class="emoji-caption">Very Good</div></div>
+            </div>
+            <div class="slider-row">
+      <input type="range" min="1" max="5" value="{{ form.experience.data or 3 }}" class="slider" id="slider-range">
+      {{ form.experience(type="hidden", id="experience") }}
+    </div>
+  </div>
+  <div class="form-group">
+    {{ form.comments(class="form-control", rows="3", placeholder="Add your comments...") }}
+    {% for error in form.comments.errors %}
+      <div class="text-danger">{{ error }}</div>
+    {% endfor %}
+  </div>
+  {{ form.submit(class="btn btn-primary submit-btn") }}
+</form>
+      </div>
+    </div>
+  </div>
+  <script>
+  // Auto-hide flash messages after 5 seconds
+  document.addEventListener("DOMContentLoaded", function () {
+    setTimeout(function () {
+      let alerts = document.querySelectorAll(".alert");
+      alerts.forEach(alert => {
+        alert.style.display = "none";
+      });
+    }, 5000); // 5 seconds
+
+    // Emoji slider highlight logic
+    const slider = document.querySelector('.slider');
+    const emojis = document.querySelectorAll('.emoji');
+    const experienceField = document.getElementById('experience'); // For Flask-WTF hidden field sync
+
+    function updateEmojis(val) {
+      emojis.forEach(emoji => {
+        if (parseInt(emoji.dataset.value, 10) === parseInt(val, 10)) {
+          emoji.classList.add('emoji-active');
+        } else {
+          emoji.classList.remove('emoji-active');
+        }
+      });
+    }
+
+    if (slider && emojis.length) {
+      // Init on page load
+      updateEmojis(slider.value);
+      if (experienceField) experienceField.value = slider.value;
+
+      slider.addEventListener('input', function() {
+        updateEmojis(this.value);
+        if (experienceField) experienceField.value = this.value;
+      });
+    }
+  });
+</script>
+</body>
+</html>

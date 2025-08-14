@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Verify OTP | Emotional Support Bot</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <div class="container">
+    <!-- Flash Messages -->
+    <div class="flash-messages">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">
+              {{ message }}
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+    </div>
+
+    <!-- Left side -->
+    <div class="welcome-section">
+      <h1>Almost there&nbsp;.<span style="color: #a259f7;">!</span></h1>
+      <button class="skip-btn" onclick="window.location.href='{{ url_for('signup') }}'">
+        Back to Signup
+      </button>
+    </div>
+
+    <!-- Right side -->
+    <div class="form-container">
+      <div class="circle circle1"></div>
+      <div class="circle circle2"></div>
+      <div class="login-form">
+        <h2>Verify OTP</h2>
+        <p>Enter the OTP sent to your email to continue.</p>
+        <form method="POST" action="{{ url_for('verify_otp') }}">
+          {{ form.hidden_tag() }}
+          <div class="form-group">
+            <input type="text" name="otp" id="otp" placeholder="Enter OTP" class="form-control" required>
+          </div>
+          {% if form.otp.errors %}
+            <ul class="errors">
+              {% for error in form.otp.errors %}
+                <li>{{ error }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+          <button type="submit" class="btn btn-primary">Verify OTP</button>
+        </form>
+        <button id="resendOtpBtn" onclick="resendOtp()" style="width:80%;margin-top:12px;">Resend OTP</button>
+        <p id="otpMessage"></p>
+        <div class="footer-links">
+          <a href="#">Terms & Conditions</a> |
+          <a href="#">Support</a> |
+          <a href="#">Customer Care</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+  function resendOtp() {
+    const resendBtn = document.getElementById("resendOtpBtn");
+    resendBtn.disabled = true;
+    fetch("{{ url_for('resend_otp') }}", { 
+      method: "POST",
+      credentials: "same-origin"
+    })
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById("otpMessage").innerText = data.message || data.error;
+      })
+      .catch(() => {
+        document.getElementById("otpMessage").innerText = "Error resending OTP.";
+      })
+      .finally(() => {
+        setTimeout(() => {
+          resendBtn.disabled = false;
+        }, 30000);
+      });
+  }
+  // Auto-hide flash messages after 5 seconds
+  document.addEventListener("DOMContentLoaded", function () {
+    setTimeout(function () {
+      let alerts = document.querySelectorAll(".alert");
+      alerts.forEach(alert => {
+        alert.style.display = "none";
+      });
+    }, 5000); // 5 seconds
+  });
+</script>
+</body>
+</html>
