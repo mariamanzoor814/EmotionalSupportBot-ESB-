@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>ESB Chat Interface</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='new.css') }}">
+</head>
+<body>
+  <!-- Sidebar Navigation -->
+  <aside class="sidebar">
+    <div class="top-section">
+      <div class="logo">
+        <img src="{{ url_for('static', filename='/images/esb-logo.jpg') }}" alt="logo">
+      </div>
+      <nav class="nav-icons">
+        <a href="{{ url_for('dashboard') }}" title="Dashboard"><i class="fas fa-home"></i></a>
+        <a href="{{ url_for('mood_analysis') }}" title="Mood Analysis"><i class="fas fa-chart-bar"></i></a>
+        <a href="{{ url_for('chat') }}" title="Chatbot"><i class="fas fa-comment-dots"></i></a>
+        <a href="{{ url_for('mood_trends') }}" title="Mood Calendar"><i class="fas fa-calendar-alt"></i></a>
+      </nav>
+    </div>
+    <div class="bottom-section">
+      <a href="{{ url_for('settings') }}" title="Settings"><i class="fas fa-cog"></i></a>
+      <a href="{{ url_for('logout') }}" title="Logout">
+        <img src="{{ user['profile_picture'] or url_for('static', filename='images/default.png') }}" alt="Profile Avatar"></a>
+    </div>
+  </aside> 
+
+  <!-- Main Dashboard Area -->
+  <main class="main-content">
+    <header class="top-nav">
+      <div class="logo-text">ESB</div>
+      <div class="center-icons">
+        <i class="fas fa-sun" id="lightModeToggle" title="Light Mode"></i>
+        <i class="fas fa-moon" id="darkModeToggle" title="Dark Mode"></i>
+      </div>
+      <div class="right-avatar">
+        <img src="https://i.pravatar.cc/100?img=12" alt="Profile Avatar" />
+      </div>
+    </header>
+
+    <div class="user-profile">
+      <h2>Welcome, {{ username|default("User") }}!</h2>
+      <p>{{ user_email }}</p>
+    </div>
+     <!-- Cards for Quick Actions -->
+ <div class="card-container">
+  <div class="card" onclick="location.href='{{ url_for('mood_analysis') }}'">
+    <img src="{{ url_for('static', filename='images/mood.png') }}" alt="Mood Analysis" class="card-img" />
+    <h3>Mood Analysis</h3>
+    <p>Gain insights into your emotions with a quick mood analysis and track your well-being over time.</p>
+  </div>
+  <div class="card" onclick="location.href='{{ url_for('chat') }}'">
+    <img src="{{ url_for('static', filename='images/mood_analysis.svg') }}" alt="Mood History" class="card-img" />
+    <h3>Talk to ESB</h3>
+    <p>Your supportive chatbot companion, always here to listen, understand, and help you through whatever you're facing</p>
+  </div>
+  <div class="card" onclick="location.href='{{ url_for('mood_trends') }}'">
+    <img src="{{ url_for('static', filename='images/trends.jpg') }}" alt="Motivational Quotes" class="card-img" />
+    <h3>Mood Trends</h3>
+    <p>Track your past moods, visualize patterns, and reflect on your emotional journey over time.</p>
+  </div>
+</div>
+
+
+
+  </main>
+
+  
+  <script>
+window.addEventListener('DOMContentLoaded', function() {
+  var userProfile = document.querySelector('.user-profile');
+  if(userProfile) {
+    setTimeout(function() {
+      userProfile.classList.add('hide');
+    }, 3000); // 3 seconds visible, then fade out
+  }
+});
+
+    const lightToggle = document.getElementById("lightModeToggle");
+  const darkToggle = document.getElementById("darkModeToggle");
+  if (localStorage.getItem("theme") === "light") {
+    document.body.classList.add("light-mode");
+  }
+  lightToggle.addEventListener("click", () => {
+    document.body.classList.add("light-mode");
+    localStorage.setItem("theme", "light");
+  });
+  darkToggle.addEventListener("click", () => {
+    document.body.classList.remove("light-mode");
+    localStorage.setItem("theme", "dark");
+  });
+
+    document.getElementById("talkToESB").addEventListener("click", async () => {
+      // Step 1: Call /start-chat to begin a new chat session
+      const response = await fetch('/start-chat');
+  
+      if (response.redirected) {
+        const chatUrl = response.url;
+  
+        // Step 2: Append a message query param for pre-filled chat
+        const autoMessage = encodeURIComponent("Hi, I want to talk");
+        window.location.href = `${chatUrl}?msg=${autoMessage}`;
+      } else {
+        alert("⚠️ Failed to start chat session.");
+      }
+    });
+
+        
+  </script>
+
+</body>
+
+</html>

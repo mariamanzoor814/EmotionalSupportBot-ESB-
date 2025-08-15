@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Signup | Emotional Support Bot</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='alert.css') }}">
+  
+</head>
+<body>
+  <div class="container">
+    <!-- Left side -->
+    <div class="welcome-section">
+      <h1>Welcome To Emotional Support Bot!</h1>
+      <button class="skip-btn" onclick="alert('Skipping to main content...')">
+        Skip the lag?
+      </button>
+    </div>
+
+    <!-- Right side -->
+    <div class="form-container">
+      <div class="circle circle1"></div>
+      <div class="circle circle2"></div>
+      <div class="signup-form">
+        <h2>Signup</h2>
+        <p>Just some details to get you in!</p>
+
+        <!-- Signup Form -->
+        <form id="signupForm" method="POST" action="/signup" autocomplete="off">
+          {{ form.hidden_tag() }}
+
+          <!-- Username -->
+          <div class="form-group">
+            {{ form.username(id="username", placeholder="Username", class="form-control") }}
+            <div id="usernameError" class="error-message">
+              {% for error in form.username.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Email -->
+          <div class="form-group">
+            {{ form.email(id="email", placeholder="Email / Phone", class="form-control") }}
+            <div id="emailError" class="error-message">
+              {% for error in form.email.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Password -->
+          <div class="form-group">
+            {{ form.password(id="password", placeholder="Password", class="form-control") }}
+            <div id="passwordError" class="error-message">
+              {% for error in form.password.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Confirm Password -->
+          <div class="form-group">
+            {{ form.confirm_password(id="confirm_password", placeholder="Confirm Password", class="form-control") }}
+            <div id="confirmPasswordError" class="error-message">
+              {% for error in form.confirm_password.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Submit Button -->
+          <button type="submit">Signup</button>
+
+          <div id="loadingSpinner" class="loading-spinner"></div>
+        </form>
+
+        <!-- Login Link -->
+        <p class="login-link">
+          Already Registered? <a href="{{ url_for('login') }}">Login</a>
+        </p>
+
+        <div class="footer-links">
+          <a href="#">Terms & Conditions</a> |
+          <a href="#">Support</a> |
+          <a href="#">Customer Care</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    document.getElementById('signupForm').addEventListener('submit', async function(e) {
+      e.preventDefault();  // Prevent form from submitting until we validate
+  
+      // Form validation
+      const form = e.target;
+      const submitBtn = form.querySelector('button[type="submit"]');
+      const spinner = document.getElementById('loadingSpinner');
+      
+      const inputs = {
+        username: document.getElementById('username'),
+        email: document.getElementById('email'),
+        password: document.getElementById('password'),
+        confirm_password: document.getElementById('confirm_password')
+      };
+  
+      const errorDisplays = {
+        username: document.getElementById('usernameError'),
+        email: document.getElementById('emailError'),
+        password: document.getElementById('passwordError'),
+        confirm_password: document.getElementById('confirmPasswordError')
+      };
+  
+      let isValid = true;
+  
+      // Hide previous errors
+      Object.values(errorDisplays).forEach(el => el.style.display = 'none');
+  
+      // Username Validation
+const usernamePattern = /^[A-Za-z0-9_.-]{3,20}$/;
+
+if (!inputs.username.value.trim()) {
+  errorDisplays.username.textContent = 'Username is required';
+  errorDisplays.username.style.display = 'block';
+  isValid = false;
+} else if (!usernamePattern.test(inputs.username.value.trim())) {
+  errorDisplays.username.textContent = 'Only letters, numbers, ".", "_", and "-" allowed (3-20 chars)';
+  errorDisplays.username.style.display = 'block';
+  isValid = false;
+}
+
+// Email Validation
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+if (!inputs.email.value.trim()) {
+  errorDisplays.email.textContent = 'Email is required';
+  errorDisplays.email.style.display = 'block';
+  isValid = false;
+} else if (!emailPattern.test(inputs.email.value.trim())) {
+  errorDisplays.email.textContent = 'Enter a valid email address';
+  errorDisplays.email.style.display = 'block';
+  isValid = false;
+}
+      if (inputs.password.value.length < 6) {
+        errorDisplays.password.textContent = 'Password must be at least 6 characters';
+        errorDisplays.password.style.display = 'block';
+        isValid = false;
+      }
+      if (inputs.password.value !== inputs.confirm_password.value) {
+        errorDisplays.confirm_password.textContent = 'Passwords do not match';
+        errorDisplays.confirm_password.style.display = 'block';
+        isValid = false;
+      }
+  
+      if (!isValid) return;  // Don't submit if validation fails
+  
+      // Show loading spinner
+      submitBtn.disabled = true;
+      spinner.style.display = 'inline-block';
+  
+      // Submit the form after validation
+      form.submit();  // This triggers normal form submission
+    });
+
+    
+  </script>
+  
+</body>
+</html>

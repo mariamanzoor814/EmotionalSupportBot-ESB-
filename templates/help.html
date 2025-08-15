@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Help Center | Emotional Support Bot</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='feedback.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='landing_page.css') }}">
+  <style>
+    html, body {
+  overflow-x: hidden !important;
+}
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+.help-center-container {
+  overflow: visible !important;
+  height: auto !important;
+  max-height: none !important;
+}
+    .help-center-container {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 88px 16px 64px 16px;
+    }
+    .help-header {
+      text-align: center;
+      font-size: 3.2rem;
+      font-weight: 800;
+      margin-bottom: 10px;
+      margin-top: 20px;
+      letter-spacing: 0.03em;
+      color: #fff;
+    }
+    .help-desc {
+      text-align: center;
+      color: #babec7;
+      margin-bottom: 30px;
+      font-size: 1.19rem;
+    }
+    .help-search-bar {
+      display: flex;
+      max-width: 1000px;
+      margin: 0 auto 42px auto;
+      background: #191a1d;
+      border-radius: 8px;
+      border: 1.5px solid #242528;
+      box-shadow: 0 2px 14px #0a0a0e15;
+      position: relative;
+      z-index: 20;
+    }
+    .help-search-bar input {
+      flex: 1;
+      padding: 14px 18px;
+      background: transparent;
+      color: #fff;
+      border: none;
+      outline: none;
+      font-size: 1rem;
+    }
+    .help-search-bar button {
+      padding: 0 22px;
+      background: #232324;
+      color: #fff;
+      border: none;
+      border-radius: 0 8px 8px 0;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .help-search-bar button:hover {
+      background: #353538;
+    }
+    .search-dropdown {
+      background: #191a1d;
+      border: 1.5px solid #242528;
+      border-top: none;
+      max-width: 450px;
+      width: 100%;
+      position: absolute;
+      left: 0;
+      top: 100%;
+      z-index: 99;
+      border-radius: 0 0 8px 8px;
+      box-shadow: 0 8px 32px #0007;
+      display: none;
+    }
+    .search-result-item {
+      padding: 14px 22px;
+      color: #fff;
+      cursor: pointer;
+      transition: background 0.18s;
+      font-size: 1rem;
+      border-bottom: 1px solid #232324;
+      text-align: left;
+    }
+    .search-result-item:last-child {
+      border-bottom: none;
+    }
+    .search-result-item:hover, .search-result-item:focus {
+      background: #232324;
+      color: #10a37f;
+      outline: none;
+    }
+    .search-no-results {
+      padding: 14px 22px;
+      color: #ff6a6a;
+      background: #191a1d;
+      font-size: 1rem;
+      text-align: center;
+    }
+    .help-topics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 28px;
+      max-width: 900px;
+      margin: 0 auto 44px auto;
+      grid-auto-rows: 180px;
+    }
+    .help-topic-card {
+      background: #18191c;
+      border: 1.5px solid #232324;
+      border-radius: 12px;
+      padding: 38px 24px 28px 24px;
+      font-size: 1.18rem;
+      color: #fff;
+      font-weight: 500;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+      cursor: pointer;
+      transition: border 0.2s, box-shadow 0.2s;
+      box-shadow: 0 1px 6px #00000022;
+      min-height: 160px;
+      height: 100%;
+    }
+    .help-topic-card:hover, .help-topic-card:focus {
+      border: 1.5px solid #10a37f;
+      box-shadow: 0 3px 20px #10a37f22;
+      outline: none;
+    }
+    .help-topic-card .topic-icon {
+      font-size: 1.3rem;
+      margin-bottom: 8px;
+      color: #10a37f;
+    }
+    .faq-section {
+      margin-top: 42px;
+    }
+    .faq-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      color: #fff;
+      margin-bottom: 20px;
+    }
+    .faq-list {
+      border-top: 1.5px solid #242528;
+    }
+    .faq-item {
+      border-bottom: 1.5px solid #242528;
+      background: none;
+    }
+    .faq-question {
+      background: none;
+      border: none;
+      color: #fff;
+      width: 100%;
+      text-align: left;
+      padding: 20px 0;
+      font-size: 1.08rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      outline: none;
+      transition: color 0.18s;
+    }
+    .faq-question:hover, .faq-item.active .faq-question {
+      color: #10a37f;
+    }
+    .faq-toggle-icon {
+      font-size: 1.2rem;
+      margin-left: 10px;
+      transition: transform 0.2s;
+    }
+    .faq-item.active .faq-toggle-icon {
+      transform: rotate(90deg);
+    }
+    .faq-answer {
+      color: #babec7;
+      padding: 0 0 18px 0;
+      display: none;
+      font-size: 1rem;
+      animation: fadeIn 0.5s;
+    }
+    .faq-item.active .faq-answer {
+      display: block;
+    }
+    /* Search highlight */
+    .faq-question mark { background: #10a37f; color: #fff; padding: 0 2px; border-radius:2px;}
+    @media (max-width: 600px) {
+      .help-header { font-size: 1.18rem; }
+      .help-center-container { padding: 24px 2vw 40px 2vw; }
+      .help-topic-card { padding: 16px 8px 10px 8px; font-size: 0.97rem;}
+      .faq-title { font-size: 1rem; }
+      .help-search-bar, .search-dropdown { max-width: 98vw; }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px);}
+      to { opacity: 1; transform: translateY(0);}
+    }
+  </style>
+</head>
+<body>
+  <!-- NAVBAR -->
+  <header class="navbar">
+    <div class="navbar__container">
+      <div class="navbar__logo">
+        <img src="{{ url_for('static', filename='images/esb-logo.jpg') }}" alt="ESB Logo" class="navbar__logo-img">
+        <span class="navbar__brand">ESB</span>
+      </div>
+      <nav class="navbar__nav">
+        <a href="{{ url_for('landing_page') }}" class="navbar__link">HOME</a>
+        <a href="#" class="navbar__link">ABOUT US</a>
+        <a href="#" class="navbar__link">SERVICES</a>
+      </nav>
+      <div class="navbar__actions">
+        <a href="{{ url_for('login') }}" class="navbar__action-btn navbar__action-btn--login">LOGIN</a>
+        <a href="{{ url_for('signup') }}" class="navbar__action-btn navbar__action-btn--getstarted">GET STARTED</a>
+      </div>
+    </div>
+  </header>
+  <main class="help-center-container">
+    <div class="help-header">Help Center</div>
+    <div class="help-desc">
+      How can we assist you? Find quick answers below, or use the search bar.
+    </div>
+    <div style="position:relative;max-width:1200px;margin:0 auto 42px auto;">
+      <form class="help-search-bar" autocomplete="off" onsubmit="event.preventDefault();">
+        <input id="helpSearchInput" type="text" placeholder="Search for help..." aria-label="Search"/>
+        <button type="submit">Search</button>
+        <div id="searchDropdown" class="search-dropdown"></div>
+      </form>
+    </div>
+    <ul class="help-topics">
+      <li class="help-topic-card" tabindex="0" onclick="scrollToFaq('faq-getting-started')">
+        <span class="topic-icon">🚀</span>
+        Getting Started
+      </li>
+      <li class="help-topic-card" tabindex="0" onclick="scrollToFaq('faq-mood-trends')">
+        <span class="topic-icon">📊</span>
+        Mood Trends & Insights
+      </li>
+      <li class="help-topic-card" tabindex="0" onclick="scrollToFaq('faq-privacy')">
+        <span class="topic-icon">🔒</span>
+        Privacy & Security
+      </li>
+      <li class="help-topic-card" tabindex="0" onclick="scrollToFaq('faq-feedback')">
+        <span class="topic-icon">💡</span>
+        Feedback & Suggestions
+      </li>
+      <li class="help-topic-card" tabindex="0" onclick="scrollToFaq('faq-usage')">
+        <span class="topic-icon">📖</span>
+        Usage Guide
+      </li>
+    </ul>
+    <!-- FAQ Sections -->
+    <section class="faq-section" id="faq-getting-started">
+      <div class="faq-title">Getting Started</div>
+      <div class="faq-list">
+        <div class="faq-item active">
+          <button class="faq-question">
+            How do I start a conversation with Emotional Support Bot?
+            <span class="faq-toggle-icon">▶</span>
+          </button>
+          <div class="faq-answer">
+            Simply go to the Home page and type your message. The bot will respond instantly, providing support and insights.
+          </div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-question">
+            Can I use the bot on my phone or tablet?
+            <span class="faq-toggle-icon">▶</span>
+          </button>
+          <div class="faq-answer">
+            Yes, the platform is fully responsive and works seamlessly on any device.
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="faq-section" id="faq-mood-trends">
+      <div class="faq-title">Mood Trends & Insights</div>
+      <div class="faq-list">
+        <div class="faq-item">
+          <button class="faq-question">
+            How does the bot analyze my mood?
+            <span class="faq-toggle-icon">▶</span>
+          </button>
+          <div class="faq-answer">
+            We use advanced language models to detect sentiment and emotional tone in your messages, offering insights and tips based on your mood over time.
+          </div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-question">
+            Where can I view my mood history?
+            <span class="faq-toggle-icon">▶</span>
+          </button>
+          <div class="faq-answer">
+            Visit the "Mood Trends" page in your dashboard to view visual summaries and insights about your emotional patterns.
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="faq-section" id="faq-privacy">
+      <div class="faq-title">Privacy & Security</div>
+      <div class="faq-list">
+        <div class="faq-item">
+          <button class="faq-question">
+            Is my data confidential?
+            <span class="faq-toggle-icon">▶</span>
+          </button>
+          <div class="faq-answer">
+            Yes. All conversations and mood analytics are confidential and never shared with third parties. Your privacy is our priority.
+          </div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-question">
+            Can I delete my chat or mood history?
+            <span class="faq-toggle-icon">▶</span>
+          </button>
+          <div class="faq-answer">
+            Absolutely! You can clear your chat and mood history at any time from your account settings.
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="faq-section" id="faq-feedback">
+      <div class="faq-title">Feedback & Suggestions</div>
+      <div class="faq-list">
+        <div class="faq-item">
+          <button class="faq-question">
+            How do I share feedback or report a bug?
+            <span class="faq-toggle-icon">▶</span>
+          </button>
+          <div class="faq-answer">
+            Use the Feedback page from the menu to let us know your suggestions, questions, or report issues.
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="faq-section" id="faq-usage">
+      <div class="faq-title">Usage Guide</div>
+      <div class="faq-list">
+        <div class="faq-item">
+          <button class="faq-question">
+            What if I need urgent help?
+            <span class="faq-toggle-icon">▶</span>
+          </button>
+          <div class="faq-answer">
+            The bot can provide helpful resources and listening, but is not a substitute for professional help. If you need urgent support, please contact a mental health professional.
+          </div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-question">
+            Is it safe to use the bot for sensitive topics?
+            <span class="faq-toggle-icon">▶</span>
+          </button>
+          <div class="faq-answer">
+            Yes, you can freely express yourself. The platform is designed for privacy and safety.
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+ <script>
+  // Scroll to FAQ section
+  function scrollToFaq(id) {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({behavior: "smooth", block: "start"});
+  }
+  document.addEventListener("DOMContentLoaded", function() {
+    // Accordion
+    document.querySelectorAll('.faq-question').forEach(btn => {
+      btn.onclick = function() {
+        const item = btn.closest('.faq-item');
+        document.querySelectorAll('.faq-item').forEach(i => { if(i!==item) i.classList.remove('active'); });
+        item.classList.toggle('active');
+      }
+    });
+    // Search dropdown logic
+    const faqData = [];
+    document.querySelectorAll('.faq-section').forEach(section => {
+      const sectionTitle = section.querySelector('.faq-title').textContent.trim();
+      section.querySelectorAll('.faq-item').forEach(item => {
+        const questionBtn = item.querySelector('.faq-question');
+        const question = questionBtn.childNodes[0].textContent.trim();
+        faqData.push({ sectionTitle, question, item, section, questionBtn });
+      });
+    });
+    const input = document.getElementById('helpSearchInput');
+    const dropdown = document.getElementById('searchDropdown');
+    const form = document.querySelector('.help-search-bar');
+    let currentSearch = ""; // Store current search value
+
+    function highlight(text, term) {
+      if (!term) return text;
+      const regex = new RegExp('('+term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')+')', 'ig');
+      return text.replace(regex, '<mark>$1</mark>');
+    }
+
+    function showDropdown(val) {
+      currentSearch = val;
+      dropdown.innerHTML = '';
+      if (!val) {
+        dropdown.style.display = 'none';
+        // Remove all previous highlights from FAQ questions
+        faqData.forEach(faq => {
+          faq.questionBtn.innerHTML = faq.question + '<span class="faq-toggle-icon">▶</span>';
+        });
+        return;
+      }
+      const results = faqData.filter(faq =>
+        faq.question.toLowerCase().includes(val.toLowerCase())
+      );
+      if (results.length === 0) {
+        dropdown.innerHTML = `<div class="search-no-results">No results found</div>`;
+        dropdown.style.display = 'block';
+      } else {
+        results.forEach(faq => {
+          const el = document.createElement('div');
+          el.className = 'search-result-item';
+          el.tabIndex = 0;
+          el.innerHTML = `<strong>${highlight(faq.question, val)}</strong><br><span style="color:#babec7;font-size:.95em">${faq.sectionTitle}</span>`;
+          el.onclick = () => {
+            dropdown.style.display = 'none';
+            // Expand and scroll to the FAQ
+            document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('active'));
+            faq.item.classList.add('active');
+            faq.section.scrollIntoView({behavior: "smooth", block: "start"});
+            // Highlight the search term in the opened FAQ question
+            faq.questionBtn.innerHTML = highlight(faq.question, val) + '<span class="faq-toggle-icon">▶</span>';
+            setTimeout(() => { faq.questionBtn.focus(); }, 400);
+          };
+          el.onkeydown = (e) => {
+            if (e.key === "Enter") el.onclick();
+          };
+          dropdown.appendChild(el);
+        });
+        dropdown.style.display = 'block';
+      }
+      // Also highlight all currently displayed FAQ questions
+      faqData.forEach(faq => {
+        if (faq.question.toLowerCase().includes(val.toLowerCase())) {
+          faq.questionBtn.innerHTML = highlight(faq.question, val) + '<span class="faq-toggle-icon">▶</span>';
+        } else {
+          faq.questionBtn.innerHTML = faq.question + '<span class="faq-toggle-icon">▶</span>';
+        }
+      });
+    }
+
+    input.addEventListener('input', function() {
+      showDropdown(this.value.trim());
+    });
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      showDropdown(input.value.trim());
+    });
+    // Hide dropdown on click outside
+    document.addEventListener('click', function(e) {
+      if (!dropdown.contains(e.target) && e.target !== input) {
+        dropdown.style.display = 'none';
+      }
+    });
+    // Hide dropdown on Escape key
+    input.addEventListener('keydown', function(e) {
+      if (e.key === "Escape") {
+        dropdown.style.display = 'none';
+      }
+    });
+  });
+</script>
+</body>
+</html>

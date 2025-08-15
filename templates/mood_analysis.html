@@ -1,0 +1,437 @@
+{% macro mood_summary_bubble(mood_label, sentiment, confidence, explanation, recommendations, timestamp) %}
+<div class="chat-message bot-message mood-summary-bubble">
+  <div class="avatar-label">ESB</div>
+  <div class="message-bubble">
+    <div style="margin-bottom:8px;">
+      <span style="font-weight:bold; color:#2b8ad6;">Mood:</span> {{ mood_label }} &nbsp; | &nbsp;
+      <span style="font-weight:bold; color:#6c757d;">Sentiment:</span> {{ sentiment }} &nbsp; | &nbsp;
+      <span style="font-weight:bold; color:#ffc107;">Confidence:</span> {{ (confidence * 100) | round(2) }}%
+    </div>
+    <hr style="margin: 8px 0;">
+    <div style="margin-bottom:10px;">
+      <strong>Summary:</strong>
+      <div>{{ explanation }}</div>
+    </div>
+    <div style="margin-bottom:10px;">
+      <strong>Recommendations:</strong>
+      <ul style="margin:0 0 0 20px;">
+        {% for rec in recommendations %}
+          <li>{{ rec }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="timestamp">{{ timestamp }}</div>
+  </div>
+</div>
+{% endmacro %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Mood Analysis - ESB</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='mood_analysis.css') }}">
+  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+</head>
+<body>
+<script>
+  // So we can use the avatar URL in JS for dynamic message rendering
+  window.defaultAvatar = "{{ url_for('static', filename='images/default_avatar.jpg') }}";
+</script>
+<aside class="sidebar">
+  <div class="top-section">
+    <div class="logo">
+      <img src="{{ url_for('static', filename='/images/esb-logo.jpg') }}" alt="logo">
+    </div>
+    <nav class="nav-icons">
+      <a href="{{ url_for('dashboard') }}" title="Dashboard"><i class="fas fa-home"></i></a>
+      <a href="{{ url_for('mood_trends') }}" title="Mood Trends"><i class="fas fa-chart-bar"></i></a>
+      <a href="{{ url_for('chat') }}" title="Chatbot"><i class="fas fa-comment-dots"></i></a>
+      <a href="{{ url_for('mood_trends') }}" title="Calendar"><i class="fas fa-calendar-alt"></i></a>
+    </nav>
+  </div>
+  <div class="bottom-section">
+    <a href="{{ url_for('settings') }}" title="Settings"><i class="fas fa-cog"></i></a>
+    <a href="{{ url_for('logout') }}" title="Logout">
+       <img src="{{ avatar_url or url_for('static', filename='images/default_avatar.jpg') }}" alt="Profile Avatar">
+    </a>
+  </div>
+</aside>
+<section class="side-panel">
+  <header class="left-nav">
+    <div class="logo-text">Mood Analysis</div>
+  </header>
+  <form method="POST" action="{{ url_for('reanalyze_mood') }}">
+    <button class="reanalyze-button">
+      <i class="fas fa-sync-alt"></i> Reanalyze Mood
+    </button>
+  </form>
+  <div class="chat-history">
+    {% for session in session_list %}
+      <div class="chat-history-item">
+        <a
+          href="{{ url_for('mood_analysis', session_id=session.id) }}"
+          class="chat-history-btn {% if session.id == chat_session_id %}active{% endif %}"
+          title="{{ session.time.strftime('%b %d, %Y %H:%M') }}"
+        >
+          {{ session.topic }}
+        </a>
+        <button class="delete-chat-btn" data-session-id="{{ session.id }}">×</button>
+      </div>
+    {% endfor %}
+  </div>
+  <div class="bottom-buttons">
+    <a href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    <a href="{{ url_for('feedback_form') }}"><i class="fas fa-comment-alt"></i> Feedback</a>
+    <a href="{{ url_for('help_page') }}"><i class="fas fa-question-circle"></i> Help</a>
+  </div>
+</section>
+<main class="main-content" style="display: flex; flex-direction: column; height: 100vh;">
+  <header class="top-nav">
+    <div class="logo-text">ESB</div>
+    <div class="center-icons">
+      <i class="fas fa-sun" id="lightModeToggle" title="Light Mode"></i>
+      <i class="fas fa-moon" id="darkModeToggle" title="Dark Mode"></i>
+    </div>
+    <div class="right-avatar">
+      <img src="{{ avatar_url or url_for('static', filename='images/default_avatar.jpg') }}" alt="Profile Avatar">
+    </div>
+  </header>
+<div class="chat-window" id="chatWindow">
+  <div id="qa-history">
+    {% for msg in chat_history %}
+      {% if msg.sender == 'bot' and msg.get('type') == 'mood_summary' %}
+        {{ mood_summary_bubble(
+          msg.mood_label,
+          msg.sentiment,
+          msg.confidence,
+          msg.explanation,
+          msg.recommendations,
+          msg.timestamp
+        ) }}
+      {% elif msg.sender == 'bot' %}
+        <div class="chat-message bot-message">
+          <div class="avatar-label">ESB</div>
+          <div class="message-bubble">
+            {{ msg.message|safe }}
+            <div class="timestamp">{{ msg.timestamp }}</div>
+          </div>
+        </div>
+      {% elif msg.sender == 'user' %}
+        <div class="chat-message user-message">
+          <img src="{{ url_for('static', filename='images/default_avatar.jpg') }}" alt="Default Avatar">
+          <div class="message-bubble">
+            {{ msg.message|nl2br }}
+            <div class="timestamp">{{ msg.timestamp }}</div>
+          </div>
+        </div>
+      {% endif %}
+    {% endfor %}
+    {% if question and chat_history|length == 0 %}
+      <div class="chat-message bot-message">
+        <div class="avatar-label">ESB</div>
+        <div class="message-bubble">
+          {{ question }}
+          <div class="timestamp">Just now</div>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+  <div id="wait-msg" style="display:none;" class="typing-bubble">
+  <span class="typing-text">Generating mood analysis</span>
+  <span class="typing-dots"><span></span><span></span><span></span></span>
+</div>
+  <div id="scroll-anchor" style="height: 80px;"></div>
+</div>
+{% if allow_chat %}
+<div class="chat-input-bar" id="chatInputBar"
+     data-question-index="{{ question_index }}"
+     data-total-questions="{{ total_questions }}">
+  <form id="moodChatForm" class="chat-form">
+    <textarea id="chatInput" class="chat-input" name="answer" placeholder="Type a message..." required autofocus></textarea>
+    <button type="button" id="micButton" class="mic-button">
+      <i class="fas fa-microphone" id="micIcon"></i>
+    </button>
+    <button type="submit" class="send-button" id="sendButton">
+      <i class="fas fa-paper-plane"></i>
+    </button>
+  </form>
+</div>
+{% endif %}
+</main>
+
+<script>
+  // --- Theme and UI toggles ---
+  const allow_chat = typeof window.allow_chat !== "undefined" ? window.allow_chat : true;
+  const lightToggle = document.getElementById("lightModeToggle");
+  const darkToggle = document.getElementById("darkModeToggle");
+  if (localStorage.getItem("theme") === "light") {
+    document.body.classList.add("light-mode");
+  }
+  lightToggle.addEventListener("click", () => {
+    document.body.classList.add("light-mode");
+    localStorage.setItem("theme", "light");
+  });
+  darkToggle.addEventListener("click", () => {
+    document.body.classList.remove("light-mode");
+    localStorage.setItem("theme", "dark");
+  });
+  function scrollToBottom() {
+    const chatWindow = document.getElementById('chatWindow');
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+  }
+  window.addEventListener('load', function() {
+    focusChatInput();
+    scrollToBottom();
+  });
+
+  // --- Focus input always ---
+  function focusChatInput() {
+    const textarea = document.getElementById('chatInput');
+    if (textarea) {
+      textarea.focus();
+      textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+    }
+  }
+
+  // --- Enter sends, Shift+Enter = newline ---
+  if (allow_chat) {
+    const chatForm = document.getElementById('moodChatForm');
+    const textarea = document.getElementById('chatInput');
+    textarea.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        chatForm.dispatchEvent(new Event('submit'));
+      }
+    });
+    chatForm.addEventListener('submit', () => {
+      setTimeout(scrollToBottom, 50);
+    });
+  }
+
+  // --- Delete mood session via AJAX, then update sidebar ---
+  function attachDeleteHandlers() {
+    document.querySelectorAll('.delete-chat-btn').forEach(button => {
+      button.addEventListener('click', () => {
+        const sessionId = button.getAttribute('data-session-id');
+        fetch(`/delete-chat/${sessionId}`, {
+          method: 'DELETE',
+        })
+        .then(response => {
+          if (response.ok) updateMoodSessionList();
+          else console.error("Failed to delete chat");
+        })
+        .catch(error => console.error("Error deleting chat:", error));
+      });
+    });
+  }
+  attachDeleteHandlers();
+
+  // --- Update mood session sidebar instantly ---
+  function updateMoodSessionList() {
+    fetch('/api/mood-session-list')
+      .then(resp => resp.json())
+      .then(data => {
+        if (data.sessions) {
+          const historyDiv = document.querySelector('.chat-history');
+          let html = '';
+          data.sessions.forEach(session => {
+            html += `<div class="chat-history-item">
+              <a href="/mood-analysis?session_id=${session.id}"
+                class="chat-history-btn"
+                title="${session.time}">
+                ${session.topic}
+              </a>
+              <button class="delete-chat-btn" data-session-id="${session.id}">&times;</button>
+            </div>`;
+          });
+          historyDiv.innerHTML = html;
+          attachDeleteHandlers();
+        }
+      });
+  }
+
+  // --- Chat & Microphone Logic: Only if chat is allowed ---
+  if (allow_chat) {
+    let recognition;
+    let isListening = false;
+    let finalTranscript = '';
+
+    const micButton = document.getElementById('micButton');
+    const chatInput = document.getElementById('chatInput');
+
+    if ('webkitSpeechRecognition' in window && micButton && chatInput) {
+      recognition = new webkitSpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+
+      recognition.onresult = function(event) {
+        let interimTranscript = '';
+        let newFinalTranscript = finalTranscript;
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            newFinalTranscript += event.results[i][0].transcript + ' ';
+          } else {
+            interimTranscript += event.results[i][0].transcript;
+          }
+        }
+        finalTranscript = newFinalTranscript;
+        chatInput.value = finalTranscript + interimTranscript;
+        chatInput.style.height = 'auto';
+        chatInput.style.height = (chatInput.scrollHeight) + 'px';
+      };
+
+      recognition.onerror = function(event) {
+        console.error('Speech recognition error:', event.error);
+        isListening = false;
+        micButton.classList.remove('listening');
+        chatInput.placeholder = 'Click mic to start speaking...';
+      };
+      recognition.onspeechend = function() {
+        recognition.stop();
+        isListening = false;
+        micButton.classList.remove('listening');
+        chatInput.placeholder = 'Click mic to start speaking...';
+      };
+      function startListening() {
+        if (!isListening) {
+          recognition.start();
+          isListening = true;
+          micButton.classList.add('listening');
+          chatInput.placeholder = 'Listening...';
+        }
+      }
+      function stopListening() {
+        if (isListening) {
+          recognition.stop();
+          isListening = false;
+          micButton.classList.remove('listening');
+          chatInput.placeholder = 'Click mic to start speaking...';
+        }
+      }
+      micButton.addEventListener('click', function() {
+        if (isListening) {
+          stopListening();
+        } else {
+          startListening();
+        }
+      });
+
+      chatInput.addEventListener('input', function() {
+        if (chatInput.value === '') {
+          finalTranscript = '';
+        }
+        chatInput.style.height = 'auto';
+        chatInput.style.height = (chatInput.scrollHeight) + 'px';
+      });
+    } else if (!('webkitSpeechRecognition' in window)) {
+      if (micButton) {
+        micButton.style.display = "none";
+      }
+    }
+  }
+
+  // --- Add chat message to history and scroll ---
+  function addChatMessage(sender, message, timestamp, isSummary, summaryObj) {
+    let qaDiv = document.getElementById('qa-history');
+    let msgHtml = '';
+    if(isSummary && summaryObj){
+      msgHtml = `<div class="chat-message bot-message mood-summary-bubble">
+        <div class="avatar-label">ESB</div>
+        <div class="message-bubble">
+          <div style="margin-bottom:8px;">
+            <span style="font-weight:bold; color:#2b8ad6;">Mood:</span> ${summaryObj.mood_label} &nbsp; | &nbsp;
+            <span style="font-weight:bold; color:#6c757d;">Sentiment:</span> ${summaryObj.sentiment} &nbsp; | &nbsp;
+            <span style="font-weight:bold; color:#ffc107;">Confidence:</span> ${(summaryObj.confidence*100).toFixed(2)}%
+          </div>
+          <hr style="margin: 8px 0;">
+          <div style="margin-bottom:10px;">
+            <strong>Summary:</strong>
+            <div>${summaryObj.explanation}</div>
+          </div>
+          <div style="margin-bottom:10px;">
+            <strong>Recommendations:</strong>
+            <ul style="margin:0 0 0 20px;">${
+              (Array.isArray(summaryObj.recommendations) ? summaryObj.recommendations : [summaryObj.recommendations]).map(r=>`<li>${r}</li>`).join('')
+            }</ul>
+          </div>
+          <div class="timestamp">${timestamp}</div>
+        </div>
+      </div>`;
+    } else if(sender === 'bot'){
+      msgHtml = `<div class="chat-message bot-message"><div class="avatar-label">ESB</div>
+      <div class="message-bubble">${message}<div class="timestamp">${timestamp}</div></div></div>`;
+    } else {
+      msgHtml = `<div class="chat-message user-message">
+        <img src="` + window.defaultAvatar + `" alt="Default Avatar">
+        <div class="message-bubble">${message}<div class="timestamp">${timestamp}</div></div></div>`;
+    }
+    qaDiv.insertAdjacentHTML('beforeend', msgHtml);
+    setTimeout(()=>{document.getElementById('scroll-anchor').scrollIntoView({behavior:'smooth'});},80);
+  }
+
+  // --- Main chat form logic with Enter-to-send, focus, and sidebar update ---
+  const chatForm = document.getElementById('moodChatForm');
+  if (chatForm) {
+    const textarea = document.getElementById('chatInput');
+    // Get total questions and current question index from the template
+    const inputBar = document.getElementById('chatInputBar');
+    let questionIndex = parseInt(inputBar?.dataset.questionIndex || "0", 10);
+    const totalQuestions = parseInt(inputBar?.dataset.totalQuestions || "0", 10);
+
+    chatForm.addEventListener('submit', function(e){
+      e.preventDefault();
+      const answer = textarea.value.trim();
+      if(!answer) return;
+      textarea.value = '';
+      textarea.disabled = true;
+      document.getElementById('sendButton').disabled = true;
+
+      addChatMessage('user', answer, new Date().toLocaleString());
+      focusChatInput();
+
+      // If this is the last question: show loader immediately
+      let isLastQuestion = false;
+      if (totalQuestions > 0 && questionIndex === totalQuestions - 1) {
+        isLastQuestion = true;
+      }
+      if (isLastQuestion) {
+        document.getElementById('chatInputBar').style.display = 'none';
+        document.getElementById('wait-msg').style.display = '';
+      }
+
+      fetch('/ajax/mood-analysis', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({answer: answer})
+      })
+      .then(resp => resp.json())
+      .then(data => {
+        textarea.disabled = false;
+        document.getElementById('sendButton').disabled = false;
+        focusChatInput();
+        if(data.done){
+          document.getElementById('wait-msg').style.display = 'none';
+          addChatMessage('bot', '', new Date().toLocaleString(), true, data.mood_result);
+          updateMoodSessionList();
+          focusChatInput();
+        } else if(data.next_question){
+          addChatMessage('bot', data.next_question, new Date().toLocaleString());
+          // Increment question index for next submit
+          questionIndex++;
+          if (inputBar) {
+            inputBar.dataset.questionIndex = questionIndex.toString();
+          }
+          focusChatInput();
+        } else if(data.reply){
+          addChatMessage('bot', data.reply, new Date().toLocaleString());
+          focusChatInput();
+        }
+      });
+    });
+  }
+</script>
+</body>
+</html>

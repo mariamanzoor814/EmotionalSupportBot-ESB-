@@ -46,7 +46,7 @@ app = Flask(__name__, static_folder='static', template_folder='templates')
 
 # Application Configuration
 app.config.update(
-    SECRET_KEY=os.getenv("SECRET_KEY"),
+    SECRET_KEY=os.getenv("SECRET_KEY", "default_secret_key"),
     SESSION_COOKIE_NAME='esb_session',
     SESSION_COOKIE_SAMESITE='Lax',
     SESSION_COOKIE_SECURE=False,
