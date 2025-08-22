@@ -7,12 +7,13 @@ import smtplib
 import traceback
 import time
 from uuid import uuid4
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, date
 from collections import Counter
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from markupsafe import escape, Markup
 from werkzeug.utils import secure_filename
+import base64, json, time
 
 # Third-party Imports
 from dotenv import load_dotenv
@@ -26,8 +27,14 @@ from wtforms.validators import DataRequired, Length
 import firebase_admin
 import requests
 from google.cloud.firestore_v1 import FieldFilter
+from firebase_admin import auth as firebase_auth
 from firebase_admin import credentials, auth, firestore
 import markdown as md 
+from google.oauth2 import id_token as google_id_token
+from google.auth.transport import requests as google_requests
+from google_auth_oauthlib.flow import Flow
+from urllib.parse import quote_plus
+
 
 # Local Imports
 from forms import ResetPasswordForm, LoginForm, SignupForm, ForgotPasswordForm, ChatForm, FeedbackForm, ProfileForm
@@ -43,6 +50,39 @@ load_dotenv()
 
 # Initialize Flask Application
 app = Flask(__name__, static_folder='static', template_folder='templates')
+# Load from .env
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
+
+app.logger.info("GOOGLE_CLIENT_ID env var: %s", GOOGLE_CLIENT_ID)
+
+# Config dict instead of client_secret.json
+client_config = {
+    "web": {
+        "client_id": GOOGLE_CLIENT_ID,
+        "client_secret": GOOGLE_CLIENT_SECRET,
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+        "redirect_uris": [GOOGLE_REDIRECT_URI],
+        "javascript_origins": [
+            "http://127.0.0.1:5000",
+            "http://localhost:5000"
+        ]
+    }
+}
+flow = Flow.from_client_config(
+    client_config,
+    scopes=[
+        "openid",
+        "https://www.googleapis.com/auth/userinfo.email",
+        "https://www.googleapis.com/auth/userinfo.profile"
+    ],
+    redirect_uri=GOOGLE_REDIRECT_URI
+)
+
+
 
 # Application Configuration
 app.config.update(
@@ -101,23 +141,89 @@ class OTPForm(FlaskForm):
     submit = SubmitField('Verify OTP')
 
 # Middleware
+# Put this after you create `app` and configure logging, and BEFORE route definitions finish.
+# Single, robust before_request & after_request
+
+from flask import current_app
+
 @app.before_request
 def require_login():
-    """Authentication middleware for route protection"""
-    allowed_routes = [
-        'home',
-        'landing_page', 
-        'login', 
-        'signup', 
-        'verify_otp', 
-        'forgot_password', 
-        'static',
-        'password_reset_success'
-    ]
-    
-    if not current_user.is_authenticated and request.endpoint not in allowed_routes:
+    """
+    Global auth middleware.
+    - Allows listed endpoints (function names).
+    - Allows certain request.path prefixes (e.g. /static, /auth) for safety.
+    - Uses .split('.')[-1] so blueprint.function_name matches the simple name.
+    """
+    try:
+        # safe list of function names (use the view function name)
+        allowed_endpoints = {
+            'home',
+            'landing_page',
+            'login',
+            'signup',
+            'verify_otp',
+            'forgot_password',
+            'password_reset_success',
+            'google_login', 
+            'submit_suggestion',# <-- IMPORTANT: whitelist your google-login endpoint
+        }
+
+        # safe path prefixes (allow entire prefix)
+        allowed_path_prefixes = (
+            '/static',
+            '/auth',       # allow /auth/google-login and other auth callbacks
+            '/favicon.ico',
+            '/.well-known', # devtools/other well-known requests
+        )
+
+        # If endpoint is None (e.g., 404 before endpoint resolution), be conservative
+        endpoint = request.endpoint or ''
+        endpoint_name = endpoint.split('.')[-1]  # handles blueprints: bp.endpoint -> endpoint
+
+        # Allow if endpoint is in allowed list
+        if endpoint_name in allowed_endpoints:
+            return
+
+        # Allow if path starts with allowed prefix
+        for pfx in allowed_path_prefixes:
+            if request.path.startswith(pfx):
+                return
+
+        # Allow if user logged in (Flask-Login current_user)
+        if getattr(current_user, "is_authenticated", False):
+            return
+
+        # Also allow if session-based login present (your app stores user_id in session)
+        if 'user_id' in session:
+            return
+
+        # Not allowed -> log reason and redirect to login
+        app.logger.debug(
+            "Blocking access to endpoint='%s' (name='%s'), path='%s'; not authenticated",
+            endpoint, endpoint_name, request.path
+        )
         flash("Please log in to access this page.", "warning")
         return redirect(url_for('login'))
+
+    except Exception as exc:
+        # If anything goes wrong in the middleware, log and allow request to continue
+        # (avoid locking yourself out during a bug)
+        app.logger.exception("Error in require_login middleware: %s", exc)
+        return  # allow the request (safer than crashing the app)
+
+@app.after_request
+def set_coop_header(response):
+    """
+    Set Cross-Origin-Opener-Policy so GSI popup can postMessage back.
+    Keep this single and do not set Cross-Origin-Embedder-Policy unless required.
+    """
+    try:
+        response.headers['Cross-Origin-Opener-Policy'] = 'same-origin-allow-popups'
+    except Exception:
+        app.logger.exception("Failed to set COOP header")
+    return response
+
+
 
 @app.template_filter('markdown')
 def markdown_filter(s):
@@ -144,11 +250,26 @@ def markdown_filter(s):
     html = re.sub(r'<code>', r'<code class="hljs">', html)
     return Markup(html)
 
-def require_login():
-    allowed_routes = ['login', 'signup', 'verify_otp', 'forgot_password', 'static']
-    if 'user_id' not in session and request.endpoint not in allowed_routes:
-        return redirect(url_for('login'))
+# def require_login():
+#     allowed_routes = ['login', 'signup', 'verify_otp', 'forgot_password', 'static']
+#     if 'user_id' not in session and request.endpoint not in allowed_routes:
+#         return redirect(url_for('login'))
 
+def decode_jwt_unverified(token):
+    """Return JWT payload as dict without verifying signature."""
+    try:
+        parts = token.split('.')
+        if len(parts) < 2:
+            return {}
+        payload = parts[1]
+        # add padding if necessary
+        rem = len(payload) % 4
+        if rem:
+            payload += '=' * (4 - rem)
+        decoded = base64.urlsafe_b64decode(payload.encode('utf-8'))
+        return json.loads(decoded)
+    except Exception:
+        return {}
 
 def generate_otp():
     return str(random.randint(100000, 999999))  # Generate a 6-digit OTP
@@ -261,6 +382,11 @@ def verify_otp():
             expires_at = otp_data.get('expires_at')
 
             if not expires_at or datetime.now(timezone.utc) > expires_at:
+                # Delete expired OTP doc (best-effort)
+                try:
+                    db.collection(collection_name).document(email).delete()
+                except Exception:
+                    pass
                 flash("OTP expired. Request a new one.", "danger")
                 return redirect(url_for('forgot_password' if flow_type == 'reset' else 'signup'))
 
@@ -271,6 +397,7 @@ def verify_otp():
                     form=form
                 )
 
+            # OTP valid
             if flow_type == 'reset':
                 flash("OTP verified. You may reset your password.", "success")
                 return redirect(url_for('reset_password'))
@@ -291,24 +418,35 @@ def verify_otp():
                         display_name=username
                     )
 
-                    # Create Firestore user document with UID as key
+                    # Prepare default avatar (UI Avatars) if none provided
+                    safe_name = quote_plus(username or (email.split('@')[0] if email else "User"))
+                    default_avatar = f"https://ui-avatars.com/api/?name={safe_name}&background=random"
+
+                    # Create Firestore user document with UID as key (include profile_picture)
                     user_ref = db.collection("users").document(user.uid)
                     user_ref.set({
                         "username": username,
                         "email": email,
                         "created_at": firestore.SERVER_TIMESTAMP,
-                        "status": "active"
+                        "status": "active",
+                        "profile_picture": default_avatar
                     }, merge=True)
 
-                    # Delete OTP data
-                    db.collection("signup_otps").document(email).delete()
+                    # Delete OTP data (cleanup)
+                    try:
+                        db.collection("signup_otps").document(email).delete()
+                    except Exception:
+                        pass
 
-                    # Log user in immediately
+                    # Log user in immediately with Flask-Login
                     user_obj = User(uid=user.uid, email=email)
                     login_user(user_obj)
-                    session['user_id'] = user.uid  # Set session variable
+                    session['user_id'] = user.uid
+                    session['user_email'] = email
+                    session['username'] = username
+                    session['profile_picture'] = default_avatar
 
-                    # Cleanup session data
+                    # Cleanup signup session data
                     session.pop('signup_data', None)
 
                     flash("Signup successful! Welcome to our platform.", "success")
@@ -316,9 +454,12 @@ def verify_otp():
 
                 except Exception as user_creation_err:
                     print(f"🔥 User creation failed: {str(user_creation_err)}")
-                    # Cleanup Firebase user if created
-                    if 'user' in locals():
-                        auth.delete_user(user.uid)
+                    # Cleanup Firebase user if created partially
+                    try:
+                        if 'user' in locals() and getattr(user, 'uid', None):
+                            auth.delete_user(user.uid)
+                    except Exception:
+                        pass
                     flash("Account creation failed. Please try again.", "danger")
                     return redirect(url_for('signup'))
 
@@ -327,10 +468,12 @@ def verify_otp():
             flash("OTP verification failed. Try again.", "danger")
             return redirect(url_for('forgot_password' if flow_type == 'reset' else 'signup'))
 
+    # Render appropriate verify page
     return render_template(
         'verify_otp.html' if flow_type == 'reset' else 'verify_otp_signup.html',
         form=form
     )
+
 @csrf.exempt
 @app.route('/resend-otp', methods=['POST'])
 def resend_otp():
@@ -465,8 +608,138 @@ def signup():
             print(form.errors)
             flash("Please fill in all fields correctly.", "warning")
 
-    return render_template('signup.html', form=form)
+    # Always pass form (and GOOGLE_CLIENT_ID for GSI) when rendering template
+    return render_template('signup.html', form=form, GOOGLE_CLIENT_ID=os.getenv('GOOGLE_CLIENT_ID'))
 
+
+# ===========================
+# GOOGLE LOGIN
+# ===========================
+# place this in your main app file (replace existing route)
+@app.route("/auth/google-login", methods=["POST"])
+@csrf.exempt
+def google_login():
+    """
+    Accepts JSON { idToken: "<google-id-token>" }.
+    Verifies Google token, ensures Firebase Auth + Firestore user,
+    logs in via Flask-Login, returns JSON. No redirects.
+    """
+    try:
+        payload = request.get_json(silent=True) or {}
+        id_token_str = payload.get("idToken") or payload.get("token")
+        if not id_token_str:
+            return jsonify({"error": "Missing ID token"}), 400
+
+        client_id = os.getenv("GOOGLE_CLIENT_ID")
+        if not client_id:
+            return jsonify({"error": "Server misconfigured: missing GOOGLE_CLIENT_ID"}), 500
+
+        # Verify the Google token
+        try:
+            id_info = google_id_token.verify_oauth2_token(
+                id_token_str,
+                google_requests.Request(),
+                client_id
+            )
+        except ValueError as ve:
+            return jsonify({"error": "Invalid Google token", "details": str(ve)}), 401
+
+        email = id_info.get("email")
+        name = id_info.get("name") or (email.split("@")[0] if email else None)
+        picture = id_info.get("picture")
+        if not email:
+            return jsonify({"error": "Google token missing email"}), 400
+
+        # Ensure Firebase Auth user exists
+        try:
+            existing = firebase_auth.get_user_by_email(email)
+            firebase_uid = existing.uid
+        except firebase_auth.UserNotFoundError:
+            created = firebase_auth.create_user(
+                email=email,
+                display_name=name,
+                photo_url=picture,
+                email_verified=True
+            )
+            firebase_uid = created.uid
+
+        # Ensure Firestore doc exists/updates
+        user_doc_ref = db.collection("users").document(firebase_uid)
+        snap = user_doc_ref.get()
+        if not snap.exists:
+            user_doc_ref.set({
+                "uid": firebase_uid,
+                "email": email,
+                "username": name,
+                "profile_picture": picture,
+                "login_provider": "google",   # ✅ always set login_provider
+                "created_at": firestore.SERVER_TIMESTAMP if 'firestore' in globals() else datetime.utcnow()
+            }, merge=True)
+        else:
+            updates = {"login_provider": "google"}  # ✅ refresh login_provider
+            data = snap.to_dict()
+            if not data.get("profile_picture") and picture:
+                updates["profile_picture"] = picture
+            if not data.get("username") and name:
+                updates["username"] = name
+            if updates:
+                user_doc_ref.update(updates)
+
+        # Flask-Login session
+        user_obj = User(uid=firebase_uid, email=email)
+        login_user(user_obj)
+        session["user_id"] = firebase_uid
+        session["user_email"] = email
+        session["username"] = name
+        session["profile_picture"] = picture
+
+        return jsonify({
+            "message": "Google signup/login successful",
+            "uid": firebase_uid,
+            "email": email,
+            "name": name,
+            "profile_picture": picture
+        }), 200
+
+    except Exception as e:
+        app.logger.exception("Unhandled exception in google_login")
+        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+
+
+@app.route("/auth/callback")
+def auth_callback():
+    try:
+        flow.fetch_token(authorization_response=request.url)
+        credentials = flow.credentials
+
+        id_info = google_id_token.verify_oauth2_token(
+            credentials._id_token,
+            google_requests.Request(),
+            os.getenv("GOOGLE_CLIENT_ID")
+        )
+
+        user_id = id_info["sub"]
+        email = id_info.get("email")
+        name = id_info.get("name")
+        picture = id_info.get("picture")
+
+        # Save/Update Firestore
+        db.collection("users").document(user_id).set({
+            "email": email,
+            "username": name,
+            "profile_picture": picture,
+            "login_provider": "google"
+        }, merge=True)
+
+        # Log user in
+        user = User(id=user_id, email=email, username=name)
+        login_user(user)
+
+        return redirect(url_for("dashboard"))
+
+    except Exception as e:
+        app.logger.error(f"Google login failed: {e}")
+        return jsonify({"error": "Google login failed", "details": str(e)}), 400
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -474,7 +747,7 @@ def login():
     if form.validate_on_submit():
         email = form.email.data
         password = form.password.data
-        remember = form.remember.data  # <-- this is True if checked
+        remember = form.remember.data
 
         try:
             url = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={os.getenv('FIREBASE_WEB_API_KEY')}"
@@ -488,17 +761,32 @@ def login():
 
             if "idToken" in data:
                 uid = data['localId']  # Firebase UID
-                user = User(uid=uid, email=email)
-                # THIS LINE IS THE IMPORTANT ONE:
-                login_user(user, remember=remember)
-            
+
+                # Get Firestore user doc
                 user_ref = db.collection("users").document(uid)
                 user_data = user_ref.get().to_dict()
-                
+
+                # If missing, create/update doc
+                if not user_data:
+                    user_ref.set({
+                        "uid": uid,
+                        "email": email,
+                        "username": email.split("@")[0],
+                        "profile_picture": None,
+                        "created_at": firestore.SERVER_TIMESTAMP if 'firestore' in globals() else datetime.utcnow()
+                    })
+                    user_data = user_ref.get().to_dict()
+
+                # Flask-Login user object
+                user = User(uid=uid, email=email)
+                login_user(user, remember=remember)
+
+                # Save in session
                 session['user_id'] = uid
                 session['user_email'] = user_data.get('email')
                 session['username'] = user_data.get('username')
-                
+                session['profile_picture'] = user_data.get('profile_picture')
+
                 flash("Login successful!", "success")
                 return redirect(url_for('dashboard'))
             else:
@@ -506,104 +794,156 @@ def login():
                 flash(f"Login failed: {error_message}", "danger")
 
         except Exception as e:
+            app.logger.exception("Login error")
             flash(f"Login failed: {str(e)}", "danger")
 
-    return render_template('login.html', form=form)
+    return render_template('login.html', form=form, GOOGLE_CLIENT_ID=os.getenv("GOOGLE_CLIENT_ID"))
+
 
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    
     user_id = current_user.id
-    
-    # Get user document with error handling
+
+    # Fetch user from Firestore
     user_ref = db.collection("users").document(user_id)
     user_doc = user_ref.get()
-    
     if not user_doc.exists:
         flash("Your profile data is missing! Please contact support.", "danger")
         return redirect(url_for('logout'))
-    
+
     user_data = user_doc.to_dict()
 
-    if not user_id:
-        flash("You must be logged in to access the dashboard.", "error")
-        return redirect(url_for('login'))
+    # Determine profile avatar:
+    if user_data.get("login_provider") == "google" and user_data.get("profile_picture"):
+        profile_avatar = user_data["profile_picture"]
+        is_initials = False
+    else:
+        # generate initials fallback
+        username = user_data.get("username", "User")
+        initials = "".join([part[0].upper() for part in username.split()[:2]])
+        profile_avatar = initials
+        is_initials = True
 
-    # === Fetch the latest mood entry ===
-    latest_mood_query = db.collection('moods') \
-        .where(filter=FieldFilter("user_id", "==", user_id)) \
-        .order_by('timestamp', direction=firestore.Query.DESCENDING) \
-        .limit(1) \
+    # Fetch latest mood
+    latest_mood_query = (
+        db.collection('moods')
+        .where(filter=FieldFilter("user_id", "==", user_id))
+        .order_by('timestamp', direction=firestore.Query.DESCENDING)
+        .limit(1)
         .stream()
-
+    )
     latest_mood_data = next(latest_mood_query, None)
-
     if latest_mood_data:
         mood_doc = latest_mood_data.to_dict()
-        latest_mood_score = mood_doc.get('confidence_score')  # FIXED
-        latest_sentiment = mood_doc.get('mood_label')         # FIXED
+        latest_mood_score = mood_doc.get('confidence_score')
+        latest_sentiment = mood_doc.get('mood_label')
     else:
         latest_mood_score = None
         latest_sentiment = None
 
-    # === Fetch full mood history for this user ===
-    mood_history_query = db.collection('moods') \
-    .where(filter=FieldFilter("user_id", "==", user_id)) \
-    .order_by('timestamp', direction=firestore.Query.DESCENDING) \
-    .stream()
-
+    # Build mood history
     mood_history = []
-    for doc in mood_history_query:
+    history_query = (
+        db.collection('moods')
+        .where(filter=FieldFilter("user_id", "==", user_id))
+        .order_by('timestamp', direction=firestore.Query.DESCENDING)
+        .stream()
+    )
+    for doc in history_query:
         data = doc.to_dict()
-        data['timestamp'] = data['timestamp'].strftime('%Y-%m-%d %H:%M')
+        if "timestamp" in data:
+            data['timestamp'] = data['timestamp'].strftime('%Y-%m-%d %H:%M')
         mood_history.append(data)
 
     return render_template(
-        'dashboard.html',
+        "dashboard.html",
         latest_mood_score=latest_mood_score,
         latest_sentiment=latest_sentiment,
         mood_history=mood_history,
-        user_email=user_data.get('email'),
-        username=user_data.get('username')
+        user_email=user_data.get("email"),
+        username=user_data.get("username"),
+        profile_avatar=profile_avatar,
+        is_initials=is_initials
     )
-import hashlib
-def gravatar_url(email, size=128, default='identicon'):
-    """Return the gravatar URL for the given email."""
-    email = email.strip().lower().encode('utf-8')
-    email_hash = hashlib.md5(email).hexdigest()
-    return f"https://www.gravatar.com/avatar/{email_hash}?s={size}&d={default}"
+
 
 @app.route('/settings', methods=['GET', 'POST'])
 @login_required
 def settings():
-    user_ref = db.collection('users').document(current_user.id)
-    user_data = user_ref.get().to_dict() if user_ref.get().exists else {}
+    user_id = current_user.id
+    user_doc = db.collection('users').document(user_id).get()
+    user_data = user_doc.to_dict() if user_doc.exists else {}
 
+    # Avatar logic (same as mood_analysis)
+    if user_data.get("login_provider") == "google" and user_data.get("profile_picture"):
+        profile_avatar = user_data["profile_picture"]
+        is_initials = False
+    else:
+        username = user_data.get("username") or session.get("name") or current_user.email or ""
+        # Build initials from up to the first two name parts
+        initials = "".join([part[0].upper() for part in username.split()[:2] if part])
+        # If initials empty (e.g., email only), fall back to first two letters of email local-part
+        if not initials and "@" in username:
+            initials = username.split("@", 1)[0][:2].upper()
+        profile_avatar = initials or "?"  # safe fallback
+        is_initials = True
+
+    name = user_data.get("username") or session.get("name") or current_user.email or ""
     form = ProfileForm()
 
     # Handle form submission
     if form.validate_on_submit():
-        # Get updated data
-        new_first_name = form.first_name.data
+        updates = {}
+        # Update first_name if provided
+        if 'first_name' in form and form.first_name.data is not None:
+            updates['first_name'] = form.first_name.data.strip()
+        # Optionally update username if you include it in the form (uncomment if needed)
+        # if 'username' in form and form.username.data:
+        #     updates['username'] = form.username.data.strip()
 
-        # Save to Firestore
-        user_ref.update({
-            'first_name': new_first_name
-        })
+        try:
+            if updates:
+                db.collection('users').document(user_id).update(updates)
+            flash("Profile updated successfully!", "success")
+        except Exception as e:
+            # Be explicit about failure so user can act
+            flash(f"Failed to update profile: {str(e)}", "danger")
 
-        flash("Profile updated successfully!", "success")
-        return redirect(url_for('settings'))  # Refresh page with updated data
+        # Refresh local copy after update
+        user_doc = db.collection('users').document(user_id).get()
+        user_data = user_doc.to_dict() if user_doc.exists else {}
+        # Recompute avatar in case name or picture changed
+        if user_data.get("login_provider") == "google" and user_data.get("profile_picture"):
+            profile_avatar = user_data["profile_picture"]
+            is_initials = False
+        else:
+            username = user_data.get("username") or session.get("name") or current_user.email or ""
+            initials = "".join([part[0].upper() for part in username.split()[:2] if part])
+            if not initials and "@" in username:
+                initials = username.split("@", 1)[0][:2].upper()
+            profile_avatar = initials or "?"
+            is_initials = True
 
-    # Pre-fill the form on GET
+        return redirect(url_for('settings'))
+
+    # Pre-fill the form on GET (or when not POST)
     if request.method == 'GET':
         form.first_name.data = user_data.get('first_name', '')
         form.email.data = user_data.get('email', '')
 
-    gravatar = gravatar_url(user_data.get('email', '')) if user_data.get('email') else url_for('static', filename='images/esb-logo.jpg')
+    # Compute profile_pic for template consistency (nicer naming)
+    profile_pic = profile_avatar if not is_initials else None
 
-    return render_template('settings.html', form=form, user=user_data, gravatar=gravatar)
-
+    return render_template(
+        'settings.html',
+        form=form,
+        user=user_data,
+        profile_pic=profile_pic,    # URL when image exists, otherwise None
+        initials=profile_avatar,    # initials string when using initials (or "?")
+        is_initials=is_initials,
+        user_name=name
+    )
 
 @app.route('/feedback_form', methods=['GET', 'POST'])
 @login_required
@@ -643,6 +983,60 @@ def save_user_feedback(user_id, name, email, experience, comments, timestamp):
     }
     # Save feedback under users/<user_id>/feedback/<auto_id>
     db.collection("users").document(str(user_id)).collection("feedback").add(feedback_data)
+    
+# helper to save to Firestore
+def save_user_suggestion(user_id, name, email, suggestion, timestamp):
+    doc = {
+        "user_id": str(user_id) if user_id is not None else None,
+        "name": name,
+        "email": email,
+        "suggestion": suggestion,
+        "timestamp": timestamp
+    }
+    # top-level collection "user_suggestions"
+    db.collection("user_suggestions").add(doc)
+
+# public route (no @login_required)
+@csrf.exempt 
+@app.route("/submit_suggestion", methods=["POST"])
+def submit_suggestion():
+    # Accept JSON or form-encoded POSTs
+    current_app.logger.debug("submit_suggestion content-type: %s", request.content_type)
+    data = {}
+    if request.is_json:
+        data = request.get_json(silent=True) or {}
+    else:
+        data = {
+            "first_name": request.form.get("first_name", ""),
+            "last_name": request.form.get("last_name", ""),
+            "name": request.form.get("name", ""),
+            "email": request.form.get("email", ""),
+            "suggestion": request.form.get("suggestion", "")
+        }
+
+    first = (data.get("first_name") or "").strip()
+    last = (data.get("last_name") or "").strip()
+    name = (data.get("name") or "").strip() or (first + " " + last).strip()
+    email = (data.get("email") or "").strip()
+    suggestion = (data.get("suggestion") or "").strip()
+
+    # validation
+    if not suggestion:
+        return jsonify({"status": "error", "message": "Suggestion cannot be empty."}), 400
+    if email and "@" not in email:
+        return jsonify({"status": "error", "message": "Please provide a valid email address."}), 400
+
+    # no login required; optional user_id = None
+    user_id = None
+    timestamp = datetime.now(timezone.utc)
+
+    try:
+        save_user_suggestion(user_id, name or None, email or None, suggestion, timestamp)
+        return jsonify({"status": "success", "message": "Thanks — suggestion saved."}), 200
+    except Exception as exc:
+        current_app.logger.exception("Error saving suggestion")
+        return jsonify({"status": "error", "message": f"Server error: {str(exc)}"}), 500
+    
     
 @app.route('/help')
 def help_page():
@@ -752,14 +1146,27 @@ def get_user_mood_sessions(user_id):
 def mood_analysis():
     user_id = current_user.id
     user_doc = db.collection('users').document(user_id).get()
-    avatar = user_doc.to_dict().get('profile_picture') if user_doc.exists else None
-    name = session.get('name', current_user.email)
+    user_data = user_doc.to_dict() if user_doc.exists else {}
+
+    # Avatar logic (same as chat)
+    if user_data.get("login_provider") == "google" and user_data.get("profile_picture"):
+        profile_avatar = user_data["profile_picture"]
+        is_initials = False
+    else:
+        username = user_data.get("username") or session.get("name") or current_user.email
+        initials = "".join([part[0].upper() for part in username.split()[:2]])
+        profile_avatar = initials
+        is_initials = True
+
+    name = user_data.get("username") or session.get("name") or current_user.email
     sid = request.args.get('session_id')
 
     # View past session (read-only)
     if sid:
-        return render_template('mood_analysis.html',
-            avatar_url=avatar,
+        return render_template(
+            'mood_analysis.html',
+            profile_avatar=profile_avatar,
+            is_initials=is_initials,
             user_name=name,
             question=None,
             question_index=0,
@@ -780,13 +1187,18 @@ def mood_analysis():
         session['mood_done'] = False
 
     idx = session['q_index']
-    current_q = session['questions'][idx] if not session['mood_done'] and idx < len(session['questions']) else None
+    current_q = (
+        session['questions'][idx]
+        if not session['mood_done'] and idx < len(session['questions'])
+        else None
+    )
     mood_result = session.get('mood_result')
-    chat_history = session.get('chat_history',[])
+    chat_history = session.get('chat_history', [])
 
     return render_template(
         'mood_analysis.html',
-        avatar_url=avatar,
+        profile_avatar=profile_avatar,
+        is_initials=is_initials,
         user_name=name,
         question=current_q,
         question_index=idx,
@@ -827,20 +1239,47 @@ def ajax_mood_analysis():
             session['q_index'] += 1
 
         if session['q_index'] >= len(questions):
-            label, conf, sent = analyze_sentiment(session['questions'], session['answers'])
-            label, conf, sent = smart_mood_label(session['questions'], session['answers'], label, conf)
-            expl = generate_mood_explanation(label, " ".join(session['answers']))
-            recs = generate_mood_recommendations(label, " ".join(session['answers']))
+            # ---- sentiment & label pipeline (new) ----
+            try:
+                # 1) Let the LLM (or your classifier) produce an initial label/confidence/sentiment
+                model_label, model_conf, model_sent = analyze_sentiment(session['questions'], session['answers'])
+            except Exception as e:
+                app.logger.exception("analyze_sentiment failed")
+                model_label, model_conf, model_sent = "unclear", 0.0, "neutral"
 
-            # >>>> PUT THIS BLOCK HERE <<<<
+            try:
+                # 2) Apply heuristics / normalization to produce the final label/confidence/sentiment
+                final_label, final_conf, final_sent = smart_mood_label(session['questions'], session['answers'], model_label, model_conf)
+            except Exception as e:
+                app.logger.exception("smart_mood_label failed")
+                final_label, final_conf, final_sent = model_label or "unclear", float(model_conf or 0.0), model_sent or "neutral"
+
+            # 3) Generate human-friendly explanation & recommendations (text outputs)
+            combined = " ".join(session['answers'])
+            try:
+                expl = generate_mood_explanation(final_label, combined)
+            except Exception as e:
+                app.logger.exception("generate_mood_explanation failed")
+                expl = "Let's explore this feeling together."
+
+            try:
+                recs = generate_mood_recommendations(final_label, combined)
+            except Exception as e:
+                app.logger.exception("generate_mood_recommendations failed")
+                recs = ["Practice mindful breathing", "Write your thoughts in a journal", "Talk to someone you trust"]
+
+            # Normalize recommendations to a list
             if isinstance(recs, str):
                 recs_list = [r.strip('-*• ').strip() for r in recs.split('\n') if r.strip()]
             else:
                 recs_list = recs
 
+            # Use the final label/confidence/sentiment for saving & returning
+            label, conf, sent = final_label, final_conf, final_sent
+
             new_sid = str(uuid4())
 
-            # Save to DB
+            # Save Q&A entries
             for q_text, a_text in zip(questions, session['answers']):
                 db.collection('moodAnalysis').add({
                     'user_id': user_id,
@@ -849,6 +1288,8 @@ def ajax_mood_analysis():
                     'answer': a_text,
                     'timestamp': datetime.now(timezone.utc)
                 })
+
+            # Save session summary
             db.collection('MoodSessions').document(new_sid).set({
                 'user_id': user_id,
                 'session_id': new_sid,
@@ -900,7 +1341,6 @@ def ajax_mood_analysis():
             save_free_chat(sid, user_id, 'bot', bot_msg)
             return jsonify({'reply': bot_msg, 'chat_history': session['chat_history']})
         return jsonify({'reply': '', 'chat_history': session['chat_history']})
-
 
 @app.route('/api/mood-session-list')
 @login_required
@@ -1001,8 +1441,21 @@ def mood_trends():
         return redirect(url_for('login'))
 
     user_doc = db.collection("users").document(user_id).get()
-    profile_img = user_doc.to_dict().get("profile_img") if user_doc.exists else "https://randomuser.me/api/portraits/men/1.jpg"
+    user_data = user_doc.to_dict() if user_doc.exists else {}
 
+    # --- Avatar logic: prefer Google profile picture if present (adjust field names if needed)
+    # If your user doc stores the provider or field name differently, change these keys.
+    if user_data.get("login_provider") == "google" and user_data.get("profile_picture"):
+        profile_avatar = user_data["profile_picture"]
+        is_initials = False
+    else:
+        # fallback to initials from username/email
+        username = user_data.get("username") or session.get("name") or current_user.email or ""
+        initials = "".join([part[0].upper() for part in username.split()[:2] if part])
+        profile_avatar = initials or "U"
+        is_initials = True
+
+    # --- existing logic (unchanged except variable names) ---
     today = datetime.utcnow().date()
     days = [(today - timedelta(days=i)) for i in reversed(range(7))]
     mood_days = [{"label": d.strftime("%a"), "day": d.day, "date": d.strftime("%Y-%m-%d")} for d in days]
@@ -1014,19 +1467,21 @@ def mood_trends():
         .where('timestamp', '<', datetime.combine(today + timedelta(days=1), datetime.min.time())) \
         .order_by('timestamp')
 
-    # DEBUG: Print what you get from Firestore!
     mood_entries = [mood.to_dict() for mood in moods_query.stream()]
     print("MoodSessions found:", mood_entries)
 
     mood_score_by_day = {d["date"]: 0 for d in mood_days}
     mood_label_by_day = {d["date"]: "" for d in mood_days}
     for entry in mood_entries:
+        # guard if timestamp missing
+        if not entry.get('timestamp'):
+            continue
         entry_date = entry['timestamp'].date().strftime("%Y-%m-%d")
         if entry_date in mood_score_by_day:
             mood_score_by_day[entry_date] = entry.get("confidence", 0)
             mood_label_by_day[entry_date] = entry.get("mood_label", "")
 
-    mood_trends = [mood_score_by_day[d["date"]]*18 for d in mood_days]
+    mood_trends = [mood_score_by_day[d["date"]] * 18 for d in mood_days]
     mood_trends_labels = [d["label"] for d in mood_days]
 
     # Calculate mood percentages
@@ -1069,7 +1524,9 @@ def mood_trends():
 
     return render_template(
         'mood_trends.html',
-        profile_img=profile_img,
+        profile_avatar=profile_avatar,
+        is_initials=is_initials,
+        user_name=(user_data.get("username") or session.get("name") or current_user.email),
         mood_days=mood_days,
         selected_day=days[-1].day,
         mood_label=mood_label,
@@ -1083,198 +1540,167 @@ def mood_trends():
         donut_label=donut_label
     )
 
-@csrf.exempt
+
+# helper to parse YYYY-MM-DD -> date
+def parse_ymd(s):
+    try:
+        return datetime.strptime(s, "%Y-%m-%d").date()
+    except Exception:
+        return None
+
 @app.route('/get-mood-trends', methods=['POST'])
+@csrf.exempt
 @login_required
 def get_mood_trends():
-    from collections import defaultdict, Counter
-    import calendar
+    user_id = current_user.id
+    data = request.get_json() or {}
+    view_type = (data.get('view_type') or 'week').lower()
+    date_str = data.get('date')
 
-    try:
-        data = request.get_json(force=True)
-        user_id = current_user.id
-        view_type = data.get('view_type', 'week')
-        date_str = data.get('date')
-        now = datetime.now(timezone.utc)
-        today = now.date()
+    today = datetime.utcnow().date()
 
-        # Helper to get period keys
-        def get_period_key(dt, vtype):
-            if vtype == 'week':
-                return dt.strftime('%Y-%m-%d')
-            elif vtype == 'month':
-                ws = dt - timedelta(days=dt.weekday())
-                return ws.strftime('%Y-%m-%d')
-            elif vtype == 'year':
-                return dt.strftime('%Y-%m')
-            else:
-                return dt.strftime('%Y-%m-%d')
+    # determine window and labels
+    if view_type == 'day' and date_str:
+        d = parse_ymd(date_str) or today
+        range_start = datetime.combine(d, datetime.min.time())
+        range_end = range_start + timedelta(days=1)
+        labels = [d.strftime("%a")]
+        day_list = [d.strftime("%Y-%m-%d")]
+    elif view_type == 'month':
+        d = parse_ymd(date_str) or today
+        first = d.replace(day=1)
+        next_month = (first + timedelta(days=32)).replace(day=1)
+        range_start = datetime.combine(first, datetime.min.time())
+        range_end = datetime.combine(next_month, datetime.min.time())
+        days = []
+        cur = first
+        while cur < next_month:
+            days.append(cur)
+            cur += timedelta(days=1)
+        labels = [dt.strftime("%d") for dt in days]
+        day_list = [dt.strftime("%Y-%m-%d") for dt in days]
+    elif view_type == 'year':
+        d = parse_ymd(date_str) or today
+        first = date(d.year, 1, 1)
+        next_year = date(d.year + 1, 1, 1)
+        range_start = datetime.combine(first, datetime.min.time())
+        range_end = datetime.combine(next_year, datetime.min.time())
+        labels = [date(d.year, m, 1).strftime("%b") for m in range(1,13)]
+        day_list = None
+    else:
+        # default: week ending on date (or today)
+        d = parse_ymd(date_str) or today
+        start_d = d - timedelta(days=6)
+        range_start = datetime.combine(start_d, datetime.min.time())
+        range_end = datetime.combine(d + timedelta(days=1), datetime.min.time())
+        day_list = [(start_d + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(7)]
+        labels = [(start_d + timedelta(days=i)).strftime("%a") for i in range(7)]
 
-        # Define periods and labels
-        if view_type == 'week':
-            bar_periods = [(today - timedelta(days=i)) for i in reversed(range(7))]
-            bar_labels = [d.strftime("%a") for d in bar_periods]
-            bar_keys = [d.strftime("%Y-%m-%d") for d in bar_periods]
-            start_time = now - timedelta(days=7)
-            end_time = now
-            detail_type = "day"
-            detail_value = date_str or bar_keys[-1]
-        elif view_type == 'month':
-            week_starts = []
-            for i in range(4, -1, -1):
-                ws = (today - timedelta(days=today.weekday())) - timedelta(weeks=i)
-                week_starts.append(ws)
-            bar_periods = week_starts
-            bar_labels = [f"{ws.strftime('%b %d')}" for ws in week_starts]
-            bar_keys = [ws.strftime('%Y-%m-%d') for ws in week_starts]
-            start_time = now - timedelta(days=30)
-            end_time = now
-            detail_type = "week"
-            detail_value = date_str or bar_keys[-1]
-        elif view_type == 'year':
-            months = [datetime(now.year, m, 1, tzinfo=timezone.utc).date() for m in range(1, now.month+1)]
-            bar_periods = months
-            bar_labels = [calendar.month_abbr[m] for m in range(1, now.month+1)]
-            bar_keys = [d.strftime('%Y-%m') for d in months]
-            start_time = datetime(now.year, 1, 1, tzinfo=timezone.utc)
-            end_time = now
-            detail_type = "month"
-            detail_value = date_str or bar_keys[-1]
-        else:
-            bar_periods = [(today - timedelta(days=i)) for i in reversed(range(7))]
-            bar_labels = [d.strftime("%a") for d in bar_periods]
-            bar_keys = [d.strftime("%Y-%m-%d") for d in bar_periods]
-            start_time = now - timedelta(days=7)
-            end_time = now
-            detail_type = "day"
-            detail_value = date_str or bar_keys[-1]
+    # query Firestore
+    sessions_ref = db.collection('MoodSessions') \
+        .where('user_id', '==', user_id) \
+        .where('timestamp', '>=', range_start) \
+        .where('timestamp', '<', range_end) \
+        .order_by('timestamp')
 
-        # Fetch all moods in range
-        moods_query = db.collection('MoodSessions') \
-            .where('user_id', '==', user_id) \
-            .where('timestamp', '>=', start_time) \
-            .where('timestamp', '<', end_time) \
-            .order_by('timestamp')
-        mood_entries = [mood.to_dict() for mood in moods_query.stream() if 'timestamp' in mood.to_dict()]
+    entries = [doc.to_dict() for doc in sessions_ref.stream()]
 
-        # Find the most recent mood per period
-        period_latest = {}
-        for entry in mood_entries:
-            dt = entry['timestamp'].date()
-            key = get_period_key(dt, view_type)
-            # If this is the latest so far, store it
-            if key not in period_latest or entry['timestamp'] > period_latest[key]['timestamp']:
-                period_latest[key] = entry
+    resp = {
+        'mood_trends': [],
+        'mood_trends_labels': labels,
+        'mood_label': 'No Data',
+        'confidence_score': 'N/A',
+        'mood_summary': [],
+        'tips': [],
+        'overall_mood': [],
+        'donut_data': [],
+        'donut_label': ''
+    }
 
-        # Chart bars: use the most recent mood's confidence in each period, 0 if missing
-        mood_trends = []
-        for k in bar_keys:
-            ent = period_latest.get(k)
-            mood_trends.append(int(ent.get("confidence", 0)*18) if ent else 0)
+    # aggregate values for chart
+    if view_type == 'year':
+        months_vals = [0]*12
+        months_counts = [0]*12
+        for e in entries:
+            ts = e.get('timestamp')
+            if not ts: continue
+            m = ts.month - 1
+            conf = e.get('confidence') or 0
+            months_vals[m] += conf
+            months_counts[m] += 1
+        for i in range(12):
+            avg = (months_vals[i] / months_counts[i]) if months_counts[i] else 0
+            resp['mood_trends'].append(avg * 18)
+    elif view_type == 'month' and day_list:
+        by_day = {d: {'sum':0, 'count':0} for d in day_list}
+        for e in entries:
+            ts = e.get('timestamp')
+            if not ts: continue
+            key = ts.date().strftime("%Y-%m-%d")
+            if key in by_day:
+                by_day[key]['sum'] += (e.get('confidence') or 0)
+                by_day[key]['count'] += 1
+        for d in day_list:
+            rec = by_day[d]
+            avg = (rec['sum'] / rec['count']) if rec['count'] else 0
+            resp['mood_trends'].append(avg * 18)
+    else:
+        # week/day
+        if day_list:
+            by_day = {d: {'sum':0, 'count':0} for d in day_list}
+            for e in entries:
+                ts = e.get('timestamp')
+                if not ts: continue
+                key = ts.date().strftime("%Y-%m-%d")
+                if key in by_day:
+                    by_day[key]['sum'] += (e.get('confidence') or 0)
+                    by_day[key]['count'] += 1
+            for d in day_list:
+                rec = by_day[d]
+                avg = (rec['sum'] / rec['count']) if rec['count'] else 0
+                resp['mood_trends'].append(avg * 18)
 
-        mood_trends_labels = bar_labels
+    # build overall mood and donut
+    label_counts = {}
+    for e in entries:
+        lbl = e.get('mood_label') or 'Unknown'
+        label_counts[lbl] = label_counts.get(lbl, 0) + 1
+    total = sum(label_counts.values())
+    label_colors = {
+        'Happy': 'swatch-happy',
+        'Stressed': 'swatch-stressed',
+        'Relaxed': 'swatch-relaxed',
+        'Angry': 'swatch-angry'
+    }
+    overall = []
+    for label, count in label_counts.items():
+        overall.append({
+            "color": label_colors.get(label, 'swatch-happy'),
+            "label": label,
+            "percent": int((count / total) * 100) if total else 0
+        })
+    resp['overall_mood'] = overall
+    donut_order = ['Happy', 'Stressed', 'Relaxed', 'Angry']
+    donut = []
+    for lbl in donut_order:
+        pct = next((m["percent"] for m in overall if m["label"] == lbl), 0)
+        donut.append({"class": lbl.lower(), "percent": pct})
+    resp['donut_data'] = donut
 
-        # --- PERIOD SUMMARY ---
-        # Find all entries for the selected period
-        if detail_type == 'day':
-            period_entry = period_latest.get(detail_value)
-            period_entries = [period_entry] if period_entry else []
-        elif detail_type == 'week':
-            ws = datetime.strptime(detail_value, '%Y-%m-%d').date()
-            period_entries = [e for e in mood_entries if ws <= e['timestamp'].date() <= ws + timedelta(days=6)]
-        elif detail_type == 'month':
-            ym = detail_value.split('-')
-            y, m = int(ym[0]), int(ym[1])
-            period_entries = [e for e in mood_entries if e['timestamp'].date().year == y and e['timestamp'].date().month == m]
-        else:
-            period_entries = []
+    latest = entries[-1] if entries else None
+    if latest:
+        resp['mood_label'] = latest.get('mood_label') or resp['mood_label']
+        resp['confidence_score'] = latest.get('confidence') or resp['confidence_score']
+        expl = latest.get('explanation')
+        if expl: resp['mood_summary'] = [expl]
+        recs = latest.get('recommendations') or []
+        resp['tips'] = recs if isinstance(recs, list) else ([r.strip('-*• ').strip() for r in str(recs).split('\n') if r.strip()])
+        resp['donut_label'] = latest.get('donut_label') or ''
+    else:
+        resp['tips'] = []
 
-        # For summary, use most recent in period
-        if not period_entries:
-            mood_label = "No Data"
-            confidence_score = "N/A"
-            mood_summary = []
-            tips = [
-                "No mood data for this period.",
-                "Try analyzing your mood to see insights here!"
-            ]
-            recommendations = []
-        else:
-            period_entry = sorted(period_entries, key=lambda e: e['timestamp'])[-1]
-            mood_label = period_entry.get("mood_label") or "No Data"
-            confidence_score = round(period_entry.get("confidence", 0), 2)
-            mood_summary = [period_entry.get("explanation")] if period_entry.get("explanation") else []
-            # recommendations in quick tips
-            recs = period_entry.get("recommendations")
-            if isinstance(recs, list):
-                tips = recs
-            elif isinstance(recs, str):
-                # split by newline/bullet if needed
-                tips = [l.strip('*- ') for l in recs.splitlines() if l.strip()]
-            else:
-                tips = []
-            recommendations = tips
+    return jsonify(resp)
 
-        # Mood distribution donut for this period
-        label_counts = Counter(e.get("mood_label", "Unknown") for e in period_entries)
-        total = sum(label_counts.values())
-        label_colors = {
-            'Happy': 'swatch-happy',
-            'Stressed': 'swatch-stressed',
-            'Relaxed': 'swatch-relaxed',
-            'Angry': 'swatch-angry'
-        }
-        overall_mood = []
-        for label, count in label_counts.items():
-            overall_mood.append({
-                "color": label_colors.get(label, 'swatch-happy'),
-                "label": label,
-                "percent": int((count / total) * 100) if total else 0
-            })
-        donut_data = []
-        donut_order = ['Happy', 'Stressed', 'Relaxed', 'Angry']
-        for lbl in donut_order:
-            percent = next((m["percent"] for m in overall_mood if m["label"] == lbl), 0)
-            donut_data.append({"class": lbl.lower(), "percent": percent})
-
-        # Calculate "real progress" for week/month/year
-        progress = None
-        if view_type in ['month', 'year', 'week']:
-            # Compare last 2 periods' average confidence
-            idx = bar_keys.index(detail_value) if detail_value in bar_keys else len(bar_keys) - 1
-            curr_val = mood_trends[idx] / 18 if mood_trends[idx] else 0
-            prev_val = mood_trends[idx-1] / 18 if idx > 0 and mood_trends[idx-1] else 0
-            if prev_val:
-                prog = ((curr_val - prev_val) / prev_val) * 100
-                progress = round(prog, 1)
-            elif curr_val:
-                progress = 100.0  # just started, all progress
-            else:
-                progress = 0.0
-
-        donut_label = f"Improved<br>By {progress}%" if progress is not None and progress > 0 else \
-                      f"Down<br>{abs(progress)}%" if progress is not None and progress < 0 else \
-                      "No change" if progress == 0 else "No Data"
-
-        return jsonify({
-            "mood_trends": mood_trends,
-            "mood_trends_labels": mood_trends_labels,
-            "mood_label": mood_label,
-            "confidence_score": confidence_score,
-            "mood_summary": mood_summary,
-            "tips": recommendations,
-            "overall_mood": overall_mood,
-            "donut_data": donut_data,
-            "donut_label": donut_label,
-            "progress": progress,
-            "show_progress": view_type in ['month', 'year', 'week']  # only show below donut for non-daily
-        }), 200
-
-    except Exception as e:
-        import traceback
-        print(f"Error in /get-mood-trends: {str(e)}")
-        traceback.print_exc()
-        return jsonify({'error': 'Internal server error'}), 500
 
 
 @csrf.exempt
@@ -1438,7 +1864,26 @@ def chat(chat_session_id):
     form = ChatForm()
     user_id = current_user.id
 
-    # Initialize or validate session ID
+    # ✅ Fetch user profile from Firestore
+    user_ref = db.collection("users").document(user_id)
+    user_doc = user_ref.get()
+    if not user_doc.exists:
+        flash("Your profile data is missing! Please contact support.", "danger")
+        return redirect(url_for('logout'))
+
+    user_data = user_doc.to_dict()
+
+    # ✅ Determine profile avatar (Google profile picture OR initials)
+    if user_data.get("login_provider") == "google" and user_data.get("profile_picture"):
+        profile_avatar = user_data["profile_picture"]
+        is_initials = False
+    else:
+        username = user_data.get("username", "User")
+        initials = "".join([part[0].upper() for part in username.split()[:2]])
+        profile_avatar = initials
+        is_initials = True
+
+    # ✅ Handle chat session
     if not chat_session_id:
         chat_session_id = session.get('chat_session_id')
         if not chat_session_id:
@@ -1452,45 +1897,156 @@ def chat(chat_session_id):
             'topic': f"Chat from {datetime.now().strftime('%b %d')}"
         })
     session['chat_session_id'] = chat_session_id
+
+    # ✅ Fetch messages
     messages_ref = chat_doc_ref.collection('messages')
     chat_history = [msg.to_dict() for msg in messages_ref.order_by("timestamp").stream()]
 
-    return render_template('chat.html',
-                         form=form,
-                         chat_history=chat_history,
-                         chat_session_id=chat_session_id,
-                         session_list=get_user_sessions(user_id))
+    return render_template(
+        'chat.html',
+        form=form,
+        chat_history=chat_history,
+        chat_session_id=chat_session_id,
+        session_list=get_user_sessions(user_id),
+        # 🆕 User profile data
+        user_email=user_data.get("email"),
+        username=user_data.get("username"),
+        profile_avatar=profile_avatar,
+        is_initials=is_initials
+    )
+
+
+from datetime import datetime, timezone
+
+def _serialize_doc_to_iso(doc_snapshot_or_dict):
+    """
+    Return a dict with 'timestamp' as an ISO8601 UTC string (Z suffix).
+    Accepts either DocumentSnapshot or plain dict.
+    """
+    try:
+        doc = doc_snapshot_or_dict.to_dict() if hasattr(doc_snapshot_or_dict, "to_dict") else dict(doc_snapshot_or_dict)
+    except Exception:
+        doc = dict(doc_snapshot_or_dict)
+
+    ts_iso = ""
+    # 1) prefer explicit numeric ms stored on doc (timestamp_ms)
+    if "timestamp_ms" in doc and isinstance(doc["timestamp_ms"], (int, float)):
+        dt = datetime.fromtimestamp(doc["timestamp_ms"] / 1000.0, tz=timezone.utc)
+        ts_iso = dt.isoformat().replace("+00:00", "Z")
+    else:
+        ts = doc.get("timestamp")
+        if ts:
+            try:
+                # Firestore python Timestamp-like / datetime
+                if hasattr(ts, "to_datetime"):
+                    dt = ts.to_datetime().astimezone(timezone.utc)
+                    ts_iso = dt.isoformat().replace("+00:00", "Z")
+                elif hasattr(ts, "strftime"):
+                    # Python datetime (maybe naive) — force to UTC if tzinfo missing
+                    if ts.tzinfo is None:
+                        dt = ts.replace(tzinfo=timezone.utc)
+                    else:
+                        dt = ts.astimezone(timezone.utc)
+                    ts_iso = dt.isoformat().replace("+00:00", "Z")
+                elif isinstance(ts, dict) and "seconds" in ts:
+                    dt = datetime.fromtimestamp(ts["seconds"], tz=timezone.utc)
+                    ts_iso = dt.isoformat().replace("+00:00", "Z")
+                else:
+                    ts_iso = str(ts)
+            except Exception:
+                ts_iso = ""
+    doc["timestamp"] = ts_iso
+    return doc
+
 
 @csrf.exempt
 @app.route('/ajax/chat/send', methods=['POST'])
 @login_required
 def ajax_chat_send():
     user_id = current_user.id
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     chat_session_id = data.get('chat_session_id')
-    user_message = data.get('message')
+    user_message = (data.get('message') or '').strip()
+
+    if not chat_session_id or not user_message:
+        return jsonify({'error': 'Missing chat_session_id or message'}), 400
 
     chat_doc_ref = db.collection('users').document(user_id).collection('chats').document(chat_session_id)
     messages_ref = chat_doc_ref.collection('messages')
 
-    # Add user message
-    messages_ref.add({
-        'sender': 'user',
-        'message': user_message,
-        'timestamp': firestore.SERVER_TIMESTAMP
-    })
+    try:
+        # server-side epoch ms (guaranteed numeric instant)
+        now_ms = int(time.time() * 1000)
 
-    # Generate and add bot response
-    chat_history = [msg.to_dict() for msg in messages_ref.order_by("timestamp").stream()]
-    bot_response = generate_bot_response(chat_history, user_message)
-    messages_ref.add({
-        'sender': 'bot',
-        'message': bot_response,
-        'timestamp': firestore.SERVER_TIMESTAMP
-    })
+        # Add user message with server timestamp + explicit ms
+        messages_ref.add({
+            'sender': 'user',
+            'message': user_message,
+            'timestamp': firestore.SERVER_TIMESTAMP,
+            'timestamp_ms': now_ms
+        })
 
-    chat_history = [msg.to_dict() for msg in messages_ref.order_by("timestamp").stream()]
-    return jsonify({'reply': bot_response, 'chat_history': chat_history})
+        # Ensure chat doc exists and set topic from first user message if missing/placeholder
+        chat_snapshot = chat_doc_ref.get()
+        chat_data = chat_snapshot.to_dict() if chat_snapshot.exists else {}
+        topic = chat_data.get('topic') if chat_data else None
+        if not topic or topic.startswith('Chat from'):
+            snippet = user_message.split('\n', 1)[0].strip()
+            if len(snippet) > 60:
+                snippet = snippet[:57].rsplit(' ', 1)[0] + '…'
+            if not snippet:
+                snippet = f"Chat {datetime.utcfromtimestamp(now_ms / 1000.0).strftime('%b %d')}"
+            chat_doc_ref.set({'topic': snippet}, merge=True)
+            topic = snippet
+
+        # Read messages (order by Firestore timestamp) — server ordering still correct
+        final_snapshots = list(messages_ref.order_by('timestamp').stream())
+
+        # generate bot response from current chat_history
+        bot_response = generate_bot_response([s.to_dict() for s in final_snapshots], user_message)
+
+        # add bot response with its own server timestamp + ms
+        bot_now_ms = int(time.time() * 1000)
+        messages_ref.add({
+            'sender': 'bot',
+            'message': bot_response,
+            'timestamp': firestore.SERVER_TIMESTAMP,
+            'timestamp_ms': bot_now_ms
+        })
+
+        # fetch latest messages and serialize to ISO timestamps
+        latest = list(messages_ref.order_by('timestamp').stream())
+        chat_history = [_serialize_doc_to_iso(s) for s in latest]
+
+        return jsonify({'reply': bot_response, 'chat_history': chat_history, 'topic': topic}), 200
+
+    except Exception as e:
+        app.logger.exception("Chat send failed")
+        return jsonify({'error': str(e)}), 500
+
+
+@csrf.exempt
+@app.route('/ajax/chat/rename', methods=['POST'])
+@login_required
+def ajax_chat_rename():
+    data = request.get_json(silent=True) or {}
+    chat_session_id = data.get('chat_session_id')
+    new_title = (data.get('title') or '').strip()
+
+    if not chat_session_id or not new_title:
+        return jsonify({'error': 'Missing chat_session_id or title'}), 400
+
+    try:
+        chat_doc_ref = db.collection('users').document(current_user.id).collection('chats').document(chat_session_id)
+        if not chat_doc_ref.get().exists:
+            return jsonify({'error': 'Chat not found'}), 404
+
+        chat_doc_ref.update({'topic': new_title})
+        return jsonify({'success': True, 'title': new_title}), 200
+    except Exception as e:
+        app.logger.exception("Rename failed")
+        return jsonify({'error': str(e)}), 500
+
 
 @csrf.exempt
 @app.route('/ajax/chat/history/<chat_session_id>', methods=['GET'])
@@ -1499,8 +2055,67 @@ def ajax_chat_history(chat_session_id):
     user_id = current_user.id
     chat_doc_ref = db.collection('users').document(user_id).collection('chats').document(chat_session_id)
     messages_ref = chat_doc_ref.collection('messages')
-    chat_history = [msg.to_dict() for msg in messages_ref.order_by("timestamp").stream()]
-    return jsonify({'chat_history': chat_history})
+
+    def _serialize_doc_to_iso(item):
+        """
+        Accept either a DocumentSnapshot or a plain dict and return a JSON-friendly dict.
+        Produces 'timestamp' as ISO8601 UTC (e.g. "2025-08-18T12:34:56.789Z").
+        Prefer explicit numeric 'timestamp_ms' if present.
+        """
+        try:
+            doc = item.to_dict() if hasattr(item, "to_dict") else dict(item)
+        except Exception:
+            doc = dict(item)
+
+        # Ensure we don't mutate original dict in Firestore snapshot
+        out = dict(doc)
+
+        ts_iso = ""
+        # 1) prefer explicit numeric ms stored on doc (timestamp_ms)
+        ts_ms = out.get("timestamp_ms")
+        if isinstance(ts_ms, (int, float)):
+            try:
+                dt = datetime.fromtimestamp(ts_ms / 1000.0, tz=timezone.utc)
+                ts_iso = dt.isoformat().replace("+00:00", "Z")
+            except Exception:
+                ts_iso = ""
+        else:
+            ts = out.get("timestamp")
+            if ts:
+                try:
+                    # Firestore Timestamp-like (python library sometimes exposes to_datetime)
+                    if hasattr(ts, "to_datetime"):
+                        dt = ts.to_datetime().astimezone(timezone.utc)
+                        ts_iso = dt.isoformat().replace("+00:00", "Z")
+                    # Python datetime
+                    elif hasattr(ts, "strftime"):
+                        if ts.tzinfo is None:
+                            dt = ts.replace(tzinfo=timezone.utc)
+                        else:
+                            dt = ts.astimezone(timezone.utc)
+                        ts_iso = dt.isoformat().replace("+00:00", "Z")
+                    # dict-like {'seconds':..., 'nanoseconds':...}
+                    elif isinstance(ts, dict) and "seconds" in ts:
+                        dt = datetime.fromtimestamp(ts["seconds"], tz=timezone.utc)
+                        ts_iso = dt.isoformat().replace("+00:00", "Z")
+                    else:
+                        ts_iso = str(ts)
+                except Exception:
+                    ts_iso = ""
+        out["timestamp"] = ts_iso
+        # Keep original timestamp_ms if present (useful clientside)
+        if "timestamp_ms" in out and isinstance(out["timestamp_ms"], (int, float)):
+            out["timestamp_ms"] = int(out["timestamp_ms"])
+        return out
+
+    try:
+        snapshots = list(messages_ref.order_by("timestamp").stream())
+        chat_history = [_serialize_doc_to_iso(s) for s in snapshots]
+        return jsonify({"chat_history": chat_history}), 200
+    except Exception as e:
+        app.logger.exception("Failed to fetch chat history")
+        return jsonify({"error": "Failed to fetch chat history", "details": str(e)}), 500
+
 
 
 @csrf.exempt

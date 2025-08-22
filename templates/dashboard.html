@@ -11,7 +11,7 @@
   <aside class="sidebar">
     <div class="top-section">
       <div class="logo">
-        <img src="{{ url_for('static', filename='/images/esb-logo.jpg') }}" alt="logo">
+        <img src="{{ url_for('static', filename='images/esb-logo.jpg') }}" alt="logo">
       </div>
       <nav class="nav-icons">
         <a href="{{ url_for('dashboard') }}" title="Dashboard"><i class="fas fa-home"></i></a>
@@ -20,11 +20,14 @@
         <a href="{{ url_for('mood_trends') }}" title="Mood Calendar"><i class="fas fa-calendar-alt"></i></a>
       </nav>
     </div>
-    <div class="bottom-section">
-      <a href="{{ url_for('settings') }}" title="Settings"><i class="fas fa-cog"></i></a>
-      <a href="{{ url_for('logout') }}" title="Logout">
-        <img src="{{ user['profile_picture'] or url_for('static', filename='images/default.png') }}" alt="Profile Avatar"></a>
-    </div>
+    <!-- Sidebar bottom avatar -->
+    <a href="{{ url_for('settings') }}" title="Profile Settings">
+      {% if is_initials %}
+        <div class="avatar avatar-initials">{{ profile_avatar }}</div>
+      {% else %}
+        <img src="{{ profile_avatar }}" class="avatar" alt="Profile Avatar" />
+      {% endif %}
+    </a>
   </aside> 
 
   <!-- Main Dashboard Area -->
@@ -35,81 +38,79 @@
         <i class="fas fa-sun" id="lightModeToggle" title="Light Mode"></i>
         <i class="fas fa-moon" id="darkModeToggle" title="Dark Mode"></i>
       </div>
+      <!-- Header top-right avatar -->
       <div class="right-avatar">
-        <img src="https://i.pravatar.cc/100?img=12" alt="Profile Avatar" />
+        {% if is_initials %}
+          <div class="avatar avatar-initials">{{ profile_avatar }}</div>
+        {% else %}
+          <img src="{{ profile_avatar }}" alt="Profile Avatar" />
+        {% endif %}
       </div>
     </header>
 
+    <!-- User Profile Greeting -->
     <div class="user-profile">
       <h2>Welcome, {{ username|default("User") }}!</h2>
       <p>{{ user_email }}</p>
     </div>
-     <!-- Cards for Quick Actions -->
- <div class="card-container">
-  <div class="card" onclick="location.href='{{ url_for('mood_analysis') }}'">
-    <img src="{{ url_for('static', filename='images/mood.png') }}" alt="Mood Analysis" class="card-img" />
-    <h3>Mood Analysis</h3>
-    <p>Gain insights into your emotions with a quick mood analysis and track your well-being over time.</p>
-  </div>
-  <div class="card" onclick="location.href='{{ url_for('chat') }}'">
-    <img src="{{ url_for('static', filename='images/mood_analysis.svg') }}" alt="Mood History" class="card-img" />
-    <h3>Talk to ESB</h3>
-    <p>Your supportive chatbot companion, always here to listen, understand, and help you through whatever you're facing</p>
-  </div>
-  <div class="card" onclick="location.href='{{ url_for('mood_trends') }}'">
-    <img src="{{ url_for('static', filename='images/trends.jpg') }}" alt="Motivational Quotes" class="card-img" />
-    <h3>Mood Trends</h3>
-    <p>Track your past moods, visualize patterns, and reflect on your emotional journey over time.</p>
-  </div>
-</div>
 
-
-
+    <!-- Cards for Quick Actions -->
+    <div class="card-container">
+      <div class="card" onclick="location.href='{{ url_for('mood_analysis') }}'">
+        <img src="{{ url_for('static', filename='images/mood.png') }}" alt="Mood Analysis" class="card-img" />
+        <h3>Mood Analysis</h3>
+        <p>Gain insights into your emotions with a quick mood analysis and track your well-being over time.</p>
+      </div>
+      <div class="card" id="talkToESB">
+        <img src="{{ url_for('static', filename='images/mood_analysis.svg') }}" alt="Mood History" class="card-img" />
+        <h3>Talk to ESB</h3>
+        <p>Your supportive chatbot companion, always here to listen, understand, and help you through whatever you're facing.</p>
+      </div>
+      <div class="card" onclick="location.href='{{ url_for('mood_trends') }}'">
+        <img src="{{ url_for('static', filename='images/trends.jpg') }}" alt="Motivational Quotes" class="card-img" />
+        <h3>Mood Trends</h3>
+        <p>Track your past moods, visualize patterns, and reflect on your emotional journey over time.</p>
+      </div>
+    </div>
   </main>
 
-  
   <script>
-window.addEventListener('DOMContentLoaded', function() {
-  var userProfile = document.querySelector('.user-profile');
-  if(userProfile) {
-    setTimeout(function() {
-      userProfile.classList.add('hide');
-    }, 3000); // 3 seconds visible, then fade out
-  }
-});
+    // Hide welcome after 3s
+    window.addEventListener('DOMContentLoaded', function() {
+      var userProfile = document.querySelector('.user-profile');
+      if(userProfile) {
+        setTimeout(function() {
+          userProfile.classList.add('hide');
+        }, 3000);
+      }
+    });
 
+    // Light / Dark Mode toggle
     const lightToggle = document.getElementById("lightModeToggle");
-  const darkToggle = document.getElementById("darkModeToggle");
-  if (localStorage.getItem("theme") === "light") {
-    document.body.classList.add("light-mode");
-  }
-  lightToggle.addEventListener("click", () => {
-    document.body.classList.add("light-mode");
-    localStorage.setItem("theme", "light");
-  });
-  darkToggle.addEventListener("click", () => {
-    document.body.classList.remove("light-mode");
-    localStorage.setItem("theme", "dark");
-  });
+    const darkToggle = document.getElementById("darkModeToggle");
+    if (localStorage.getItem("theme") === "light") {
+      document.body.classList.add("light-mode");
+    }
+    lightToggle.addEventListener("click", () => {
+      document.body.classList.add("light-mode");
+      localStorage.setItem("theme", "light");
+    });
+    darkToggle.addEventListener("click", () => {
+      document.body.classList.remove("light-mode");
+      localStorage.setItem("theme", "dark");
+    });
 
+    // Talk to ESB button
     document.getElementById("talkToESB").addEventListener("click", async () => {
-      // Step 1: Call /start-chat to begin a new chat session
       const response = await fetch('/start-chat');
-  
       if (response.redirected) {
         const chatUrl = response.url;
-  
-        // Step 2: Append a message query param for pre-filled chat
         const autoMessage = encodeURIComponent("Hi, I want to talk");
         window.location.href = `${chatUrl}?msg=${autoMessage}`;
       } else {
         alert("⚠️ Failed to start chat session.");
       }
     });
-
-        
   </script>
-
 </body>
-
 </html>

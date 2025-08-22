@@ -5,6 +5,8 @@
   <title>Login | Emotional Support Bot</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='alert.css') }}">
+  <!-- Google Identity Services -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
   <div class="container">
@@ -22,7 +24,7 @@
     </div>
 
     <!-- Left side -->
-<div class="welcome-section">
+    <div class="welcome-section">
       <h1>Welcome Back</h1>
       <button class="skip-btn" onclick="window.history.back()">
         Take me back.!
@@ -53,10 +55,33 @@
               <label for="remember">Remember me</label>
           </div>
       
-          <!-- Submit button -->
           <button type="submit" class="btn btn-primary">Login</button>
-      </form>
-      
+        </form>
+
+        <!-- OR separator -->
+        <div class="or-separator" style="margin:16px 0; text-align:center;">
+          <span style="background:#000; padding:0 10px;">OR</span>
+        </div>
+
+        <!-- Google Sign-In -->
+        <div id="g_id_onload"
+             data-client_id="{{ GOOGLE_CLIENT_ID }}"
+             data-callback="handleGoogleLogin"
+             data-auto_prompt="false"
+             data-ux_mode="popup"
+             data-context="signin">
+        </div>
+
+        <div style="display:flex; justify-content:center; margin-bottom:12px;">
+          <div id="gsiButtonContainer" class="g_id_signin"
+               data-type="standard"
+               data-size="large"
+               data-theme="outline"
+               data-text="signin_with"
+               data-shape="rectangular"
+               data-logo_alignment="left">
+          </div>
+        </div>
 
         <p class="forgot-link">
           <a href="{{ url_for('forgot_password') }}">Forgot password?</a>
@@ -73,8 +98,52 @@
     </div>
   </div>
 
-  
+  <!-- JS -->
+  <script>
+    async function handleGoogleLogin(response) {
+      const idToken = response.credential;
+      if (!idToken) {
+        alert('No ID token received from Google.');
+        return;
+      }
 
+      const gsiContainer = document.getElementById('gsiButtonContainer');
+      gsiContainer.style.pointerEvents = 'none';
+      gsiContainer.style.opacity = '0.6';
 
+      try {
+        const res = await fetch('/auth/google-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idToken })
+        });
+
+        const ct = res.headers.get('content-type') || '';
+        if (ct.includes('application/json')) {
+          const data = await res.json();
+          if (!res.ok) {
+            const msg = data.error || JSON.stringify(data);
+            alert('Google login failed: ' + msg);
+            gsiContainer.style.pointerEvents = '';
+            gsiContainer.style.opacity = '';
+            return;
+          }
+          window.location.href = '/dashboard';
+          return;
+        } else {
+          console.error('Unexpected response:', await res.text());
+          alert('Server returned unexpected response.');
+          gsiContainer.style.pointerEvents = '';
+          gsiContainer.style.opacity = '';
+        }
+
+      } catch (err) {
+        console.error('Google login request failed', err);
+        alert('Google login request failed. Check console.');
+        gsiContainer.style.pointerEvents = '';
+        gsiContainer.style.opacity = '';
+      }
+    }
+  </script>
 </body>
 </html>

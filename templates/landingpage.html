@@ -27,13 +27,24 @@
   user-select: none;
 }
 html { scroll-behavior: smooth; }
+.wanna-talk-link {
+  display: flex;              /* keep text + avatar aligned */
+  align-items: center;
+  gap: 8px;                   /* adjust spacing */
+  text-decoration: none;       /* no underline */
+  color: inherit;              /* inherit theme color */
+}
 </style>
 <body>
   <!-- NAVBAR -->
   <header class="navbar">
     <div class="navbar__container">
       <div class="navbar__logo">
-        <img src="{{ url_for('static', filename='images/esb-logo.jpg') }}" alt="ESB Logo" class="navbar__logo-img">
+        <span class="navbar__logo-frame">
+          <img src="{{ url_for('static', filename='images/esb-logo.jpg') }}"
+              alt="ESB Logo"
+              class="navbar__logo-img">
+        </span>
         <span class="navbar__brand">ESB</span>
       </div>
       <nav class="navbar__nav">
@@ -144,10 +155,6 @@ html { scroll-behavior: smooth; }
         </svg>
       </div>
     </div>
-
-    <div class="mission-hero-heading">
-      Our Mission: Redefining Creativity With Technology
-    </div>
   </section>
 
   <!-- MISSION CARDS SECTION -->
@@ -192,14 +199,16 @@ html { scroll-behavior: smooth; }
           </div>
         </div>
       </div>
-      <div class="wanna-talk-section">
-        <span class="wanna-talk-text">Wanna Talk</span>
-        <div class="wanna-talk-avatar">
-          <img src="{{ url_for('static', filename='images/5febe41a0fb7a6a850d243d0ead58dd7-sticker-201.webp') }}" alt="Wanna Talk Icon">
-          <div class="wanna-talk-lightbulb"></div>
-        </div>
+        <div class="wanna-talk-section">
+          <a href="{{ url_for('login') }}" class="wanna-talk-link">
+            <span class="wanna-talk-text">Wanna Talk</span>
+            <div class="wanna-talk-avatar">
+              <img src="{{ url_for('static', filename='images/5febe41a0fb7a6a850d243d0ead58dd7-sticker-201.webp') }}" alt="Wanna Talk Icon">
+              <div class="wanna-talk-lightbulb"></div>
+            </div>
+          </a>
+          </div>
       </div>
-    </div>
   </section>
 
   <section class="features-excellence-section" id="features-excellence-section">
@@ -336,71 +345,96 @@ html { scroll-behavior: smooth; }
       </div>
       <div class="esb-contact-hero-email-block">
         <div class="esb-contact-hero-email-label">CONTACT US TODAY!</div>
-        <a href="mailto:info@example.com" class="esb-contact-hero-email">info@example.com</a>
+        <a href="https://github.com/mariamanzoor814/EmotionalSupportBot-ESB-/tree/main" class="esb-contact-hero-email">emotionalsupportbot@gmail.com</a>
       </div>
     </div>
   </section>
 
-  <!-- DISC & GRADIENT ARC SECTION -->
+  <!-- DISC & GRADIENT ARC SECTION
   <section class="esb-disc-gradient-arc-section">
     <div class="esb-disc-gradient-arc-inner">
       <img src="{{ url_for('static', filename='images/2-p-500.webp') }}" class="esb-disc-img" alt="Disc Arc" />
       <img src="{{ url_for('static', filename='images/1-p-500.png') }}" class="esb-gradient-img" alt="Gradient Arc" />
     </div>
   </section>
+   -->
 
-  <!-- ESB CONTACT FOOTER CHAT SECTION -->
-  <section class="esb-contact-footer-section" id="esb-contact-footer-section">
-    <div class="esb-contact-footer-inner">
-      <div class="esb-contact-footer-col">
-        <span class="esb-contact-footer-title">Useful Nav</span>
-        <hr class="esb-contact-footer-divider">
-        <ul class="esb-contact-footer-links">
-          <li><a href="#">Explore yourself with ESB</a></li>
-          <li><a href="#">Ultimate Pricing</a></li>
-          <li><a href="#">Trusted Reviews</a></li>
-        </ul>
-        <hr class="esb-contact-footer-divider">
-        <div class="esb-contact-footer-note">
-          Try Emotional Support Bot (ESB)<br>
-          Unlock Potential
-        </div>
-      </div>
-      <div class="esb-contact-footer-col esb-contact-footer-center">
-        <span class="esb-contact-footer-title">Let's Chat!</span>
-        <form class="esb-contact-footer-form">
-          <div class="esb-contact-footer-form-row">
-            <input type="text" placeholder="First name">
-            <input type="text" placeholder="Last name">
-          </div>
-          <input type="email" placeholder="Your email">
-          <textarea placeholder="Start the conversation"></textarea>
-          <button type="submit" class="esb-contact-footer-submit">
-            <img src="{{ url_for('static', filename='images/send-bot.svg') }}" alt="Send">
-          </button>
-        </form>
-      </div>
-      <div class="esb-contact-footer-col">
-        <span class="esb-contact-footer-title">Help Desk</span>
-        <hr class="esb-contact-footer-divider">
-        <ul class="esb-contact-footer-links">
-          <li><a href="#">Mental well-being</a></li>
-          <li><a href="#">Got Questions?</a></li>
-          <li><a href="#">Stay Connected</a></li>
-        </ul>
-        <hr class="esb-contact-footer-divider">
-        <div class="esb-contact-footer-note">
-          <a href="#">Follow us Now</a><br>
-          <a href="#">Tweet with Team</a>
-        </div>
+<!-- ESB CONTACT FOOTER CHAT SECTION -->
+<section class="esb-contact-footer-section" id="esb-contact-footer-section">
+  <div class="esb-contact-footer-inner">
+
+    <!-- COLUMN 1 -->
+    <div class="esb-contact-footer-col">
+      <span class="esb-contact-footer-title">Useful Nav</span>
+      <hr class="esb-contact-footer-divider">
+      <ul class="esb-contact-footer-links">
+        <li><a href="#">Explore yourself with ESB</a></li>
+        <li><a href="#">Ultimate Pricing</a></li>
+        <li><a href="#">Trusted Reviews</a></li>
+      </ul>
+      <hr class="esb-contact-footer-divider">
+      <div class="esb-contact-footer-note">
+        Try Emotional Support Bot (ESB)<br>
+        Unlock Potential
       </div>
     </div>
-    <div class="esb-contact-footer-bottom">
-      <span>© ESB. All Rights Reserved.</span>
-      <br>
-      <span>Powered by Emotional Support Bot</span>
+
+    <!-- COLUMN 2 (Chat Form) -->
+    <div class="esb-contact-footer-col esb-contact-footer-center">
+      <span class="esb-contact-footer-title">Let's Chat!</span>
+      <form id="footerSuggestionForm" class="esb-contact-footer-form"
+            action="{{ url_for('submit_suggestion') }}"
+            method="post" novalidate>
+
+        <div class="esb-contact-footer-form-row">
+          <input type="text" name="first_name" placeholder="First name" autocomplete="given-name">
+          <input type="text" name="last_name" placeholder="Last name" autocomplete="family-name">
+        </div>
+
+        <input type="email" name="email" placeholder="Your email" autocomplete="email">
+
+        <!-- backend expects 'suggestion' -->
+        <textarea name="suggestion" placeholder="Give your Suggestions"></textarea>
+
+        <button type="submit" class="esb-contact-footer-submit" aria-label="Send suggestion" title="send suggestion">
+          <img src="{{ url_for('static', filename='send-bot.svg') }}" alt="Send">
+        </button>
+
+        <!-- small message area -->
+        <div id="esb-footer-msg" aria-live="polite" style="margin-top:8px;font-size:0.95rem;"></div>
+      </form>
     </div>
-  </section>
+
+    <!-- COLUMN 3 -->
+    <div class="esb-contact-footer-col">
+      <span class="esb-contact-footer-title">Help Desk</span>
+      <hr class="esb-contact-footer-divider">
+      <ul class="esb-contact-footer-links">
+        <li><a href="{{ url_for('help_page') }}">Mental well-being</a></li>
+        <li><a href="{{ url_for('help_page') }}">Got Questions?</a></li>
+        <li><a href="{{ url_for('help_page') }}">Stay Connected</a></li>
+      </ul>
+      <hr class="esb-contact-footer-divider">
+      <div class="esb-contact-footer-note">
+      <ul class="esb-contact-footer-links">
+
+        <li><a href="#" style="color:#baff1e;">Follow us Now</a></li>
+        <li><a href="#" style="color:#baff1e;">Tweet with Team</a></li>
+
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM ROW -->
+  <div class="esb-contact-footer-bottom">
+    <span>© ESB. All Rights Reserved.</span>
+    <br>
+    <span>Powered by Emotional Support Bot</span>
+  </div>
+</section>
+
 
   <script>
     // Simple testimonials slider
@@ -435,6 +469,75 @@ html { scroll-behavior: smooth; }
         section.scrollIntoView({ behavior: 'smooth' });
       }
     }
+  });
+});
+
+
+document.addEventListener('DOMContentLoaded', function () {
+  const form = document.getElementById('footerSuggestionForm');
+  const msg = document.getElementById('esb-footer-msg');
+
+  if (!form) return;
+
+  form.addEventListener('submit', async function (e) {
+    // Prevent native form submission so we can POST via fetch (no reload)
+    e.preventDefault();
+
+    // read fields
+    const fd = new FormData(form);
+    const first_name = (fd.get('first_name') || '').trim();
+    const last_name  = (fd.get('last_name') || '').trim();
+    const email      = (fd.get('email') || '').trim();
+    const suggestion = (fd.get('suggestion') || '').trim();
+
+    // simple client-side validation
+    if (!suggestion) {
+      msg.textContent = 'Please enter your suggestion.';
+      msg.style.color = 'crimson';
+      return;
+    }
+
+    // prepare payload (server accepts form POST or JSON)
+    const payload = {
+      first_name, last_name, name: (first_name + ' ' + last_name).trim(), email, suggestion
+    };
+
+    // UI feedback
+    msg.textContent = 'Sending…';
+    msg.style.color = '#444';
+
+    try {
+      const resp = await fetch(form.action || '/submit_suggestion', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify(payload)
+      });
+
+      const text = await resp.text();
+      let data = null;
+      try { data = text ? JSON.parse(text) : null; } catch (err) { data = null; }
+
+      if (resp.ok) {
+        msg.textContent = (data && data.message) ? data.message : 'Thanks — suggestion received!';
+        msg.style.color = 'green';
+        form.reset();
+      } else {
+        const errorMsg = (data && data.message) ? data.message : (text || 'Server error');
+        msg.textContent = 'Error: ' + errorMsg;
+        msg.style.color = 'crimson';
+      }
+    } catch (err) {
+      console.error('Suggestion submit failed', err);
+      msg.textContent = 'Network error. Please try again.';
+      msg.style.color = 'crimson';
+    }
+
+    // hide message after a short delay (optional)
+    setTimeout(() => { msg.textContent = ''; }, 5000);
   });
 });
   </script>

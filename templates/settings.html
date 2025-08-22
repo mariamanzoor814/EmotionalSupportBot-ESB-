@@ -24,62 +24,94 @@
       <a href="{{ url_for('mood_trends') }}" title="Calendar"><i class="fas fa-calendar-alt"></i></a>
       <a href="{{ url_for('settings') }}" title="Settings" class="active"><i class="fas fa-cog"></i></a>
     </nav>
+
     <div class="sidebar-avatar-wrap">
-      <img src="{{ gravatar }}" class="sidebar-avatar" alt="Avatar">
+      {% if not is_initials and profile_pic %}
+        <img src="{{ profile_pic }}" class="sidebar-avatar" alt="Avatar">
+      {% else %}
+        <div class="sidebar-avatar sidebar-avatar--initials">{{ initials }}</div>
+      {% endif %}
     </div>
   </aside>
 
   <!-- Top Nav -->
   <header class="settings-navbar">
     <span class="esb-brand">ESB</span>
-    <img src="{{ gravatar }}" class="nav-avatar" alt="Avatar">
+    <div class="nav-avatar-wrap">
+      {% if not is_initials and profile_pic %}
+        <img src="{{ profile_pic }}" class="nav-avatar" alt="Avatar">
+      {% else %}
+        <div class="nav-avatar nav-avatar--initials">{{ initials }}</div>
+      {% endif %}
+    </div>
   </header>
 
   <!-- Main Content -->
   <main class="settings-main">
     <div class="settings-container glassy-settings-box">
-      <form method="POST" class="settings-form">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-messages">
+            {% for category, message in messages %}
+              <div class="flash flash-{{ category }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <form method="POST" class="settings-form" novalidate>
         {{ form.hidden_tag() }}
-        
-          <!-- User's Name and Email below avatar -->
-          <div class="profile-edit-header">
-            <div class="edit-avatar-wrap">
-              <div class="edit-avatar-border">
-                  <img src="{{ gravatar }}" class="sidebar-avatar" alt="Avatar">
-              </div>
-            </div>
-            <div class="edit-profile-info">
-              <div class="edit-profile-name">{{ user.get('first_name','') }}</div>
-              <div class="edit-profile-email">{{ user.get('email','') }}</div>
+
+        <!-- User's Name and Email below avatar -->
+        <div class="profile-edit-header">
+          <div class="edit-avatar-wrap">
+            <div class="edit-avatar-border">
+              {% if not is_initials and profile_pic %}
+                <img src="{{ profile_pic }}" class="sidebar-avatar" alt="Avatar">
+              {% else %}
+                <div class="sidebar-avatar sidebar-avatar--initials large">{{ initials }}</div>
+              {% endif %}
             </div>
           </div>
+
+          <div class="edit-profile-info">
+            <div class="edit-profile-name">{{ user.get('first_name', user_name) }}</div>
+            <div class="edit-profile-email">{{ user.get('email','') }}</div>
+          </div>
+        </div>
+
         <h2 class="settings-title">Account Settings</h2>
+
         <div class="settings-row">
           {{ form.first_name.label }}
           {{ form.first_name(class="form-control") }}
         </div>
+
         <div class="settings-row">
           {{ form.email.label }}
           {{ form.email(class="form-control", readonly=True) }}
         </div>
+
         <div class="settings-row">
-          <button type="button" class="reset-btn" onclick="window.location.href='{{ url_for('reset_password') }}'">
+          <button type="button" class="reset-btn" onclick="location.href='{{ url_for('reset_password') }}'">
             <i class="fas fa-key"></i> Change Password
           </button>
         </div>
+
         <div class="settings-row">
           {{ form.save(class="save-btn") }}
         </div>
       </form>
+
       <!-- LOGOUT BUTTON: use the same style as other buttons -->
- <form action="{{ url_for('logout') }}" method="get">
-  <div class="danger-zone">
-    <button type="submit" class="logout-btn">
-      <i class="fas fa-sign-out-alt"></i> Logout
-    </button>
-    <div class="danger-desc">Click to securely log out of your account.</div>
-  </div>
-</form>
+      <form action="{{ url_for('logout') }}" method="get" class="logout-form">
+        <div class="danger-zone">
+          <button type="submit" class="logout-btn">
+            <i class="fas fa-sign-out-alt"></i> Logout
+          </button>
+          <div class="danger-desc">Click to securely log out of your account.</div>
+        </div>
+      </form>
     </div>
   </main>
 </body>

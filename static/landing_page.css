@@ -19,15 +19,20 @@ html, body {
 .navbar {
   width: 100%;
   height: 90px;
-  background: #000000 url('../images/nav-texture.png');
-  background-size: cover;
   position: fixed;
   top: 0;
   left: 0;
   z-index: 100;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  overflow: hidden; /* Hide overflow from navbar */
+
+  /* Glassmorphism effect */
+  background: rgba(255, 255, 255, 0.08); /* Transparent white overlay */
+  backdrop-filter: blur(12px); /* Frosted blur effect */
+  -webkit-backdrop-filter: blur(12px); /* Safari support */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2); /* Subtle shadow for depth */
 }
+
 
 .navbar__container {
   display: grid;
@@ -39,7 +44,6 @@ html, body {
   padding: 0 32px;
   /* Pull content up slightly for vertical centering with large logo */
   position: relative;
-  top: -18px; /* Adjust upward to center tall logo and text (tweak as needed) */
 }
 
 .navbar__logo {
@@ -49,16 +53,27 @@ html, body {
   margin-left: -40px; /* Move logo group further left */
 }
 
-.navbar__logo-img {
-  height: 130px;
-  width: 130px;
-  margin-right: -15px;
-  margin-left: -5px;
-  object-fit: contain;
-  display: block;
-  /* Pull logo up further if needed */
-  margin-top: -3px; /* Adjust as needed for vertical alignment */
+/* the circular mask that keeps layout 80×80 */
+.navbar__logo-frame{
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  overflow: hidden;                 /* clips the zoomed image */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #fff;           /* the white ring */
+  margin-right: 12px;               /* space before brand text */
 }
+
+/* your existing class stays on the <img> — we “zoom” it */
+.navbar__logo-img{
+  width: 130px;                     /* zoomed content */
+  height: 130px;
+  object-fit: cover;
+  display: block;
+}
+
 
 .navbar__brand {
   font-size: 1.6rem;
@@ -1269,7 +1284,7 @@ html, body {
   font-weight: 500;
   margin-bottom: 1.2vw;
   letter-spacing: 0.01em;
-  text-align: center;
+  text-align: left;
   width: 100%;
 }
 
@@ -1368,10 +1383,13 @@ html, body {
   right: -2vw;
   bottom: 1vw;
 }
+
 .esb-contact-footer-submit img {
-  width: 1.5vw;
-  height: 1.5vw;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
+
 .esb-contact-footer-submit:hover {
   background: #d9ff57;
 }

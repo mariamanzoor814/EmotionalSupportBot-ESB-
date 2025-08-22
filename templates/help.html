@@ -220,7 +220,11 @@
   <header class="navbar">
     <div class="navbar__container">
       <div class="navbar__logo">
-        <img src="{{ url_for('static', filename='images/esb-logo.jpg') }}" alt="ESB Logo" class="navbar__logo-img">
+          <span class="navbar__logo-frame">
+          <img src="{{ url_for('static', filename='images/esb-logo.jpg') }}"
+              alt="ESB Logo"
+              class="navbar__logo-img">
+        </span>
         <span class="navbar__brand">ESB</span>
       </div>
       <nav class="navbar__nav">

@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+venv/
+.env
+*.env
+firebase_admin_key.json
+flask_session/
+.DS_Store
+

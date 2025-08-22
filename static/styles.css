@@ -97,6 +97,8 @@ body {
   box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
   color: #fff; 
   text-align: center;
+   min-height: 100%;   /* keeps it tall but still grows */
+  height: auto; 
 }
 
 .signup-form h2 {
@@ -266,6 +268,8 @@ body {
   box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
   color: #fff;
   text-align: center;
+   min-height: 100%;   /* keeps it tall but still grows */
+  height: auto; 
 }
 
 .login-form h2 {

@@ -79,6 +79,7 @@
   body.light-mode .chat-input-bar {
     background-color: rgba(224, 224, 224, 0.7);
     border: 1px solid rgba(0, 0, 0, 0.1);
+    color: white;
   }
 
   body.light-mode .chat-input-bar input {
@@ -95,9 +96,58 @@
   }
 
   body.light-mode .footer-text {
-    color: #555;
+    color:#555;
   }
 
+/* make light mode use the exact color you asked for */
+body.light-mode {
+  /* ensure the glass variable uses the color you specified */
+  --glass-bg: rgba(224, 224, 224, 0.7);
+  --light-glass-bg: rgba(224, 224, 224, 0.7);
+  --light-glass-border: rgba(0,0,0,0.08);
+}
+
+/* apply that color to the input bar and inner form */
+body.light-mode .chat-input-bar,
+body.light-mode .chat-form {
+  background: var(--light-glass-bg);            /* the rgba(224,224,224,0.7) you asked for */
+  border: 1px solid var(--light-glass-border);  /* subtle dark border for contrast */
+  color: #111;                                  /* readable dark text */
+  box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+  backdrop-filter: blur(8px) saturate(120%);
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
+}
+
+/* typed text, placeholder, caret and icons inside the bar */
+body.light-mode .chat-input {
+  color: #111;
+  caret-color: #111;
+  background: transparent;
+}
+
+body.light-mode .chat-input::placeholder {
+  color: rgba(17,17,17,0.45);
+}
+
+body.light-mode .chat-input-bar i,
+body.light-mode .chat-input-bar .icon {
+  color: #444;
+}
+
+/* keep the send button visible on the light bg */
+body.light-mode .chat-input-bar button {
+  background-color: #6c47ff;
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(108,71,255,0.12);
+}
+
+/* focus state */
+body.light-mode .chat-form:focus-within {
+  box-shadow: 0 0 0 3px rgba(108,71,255,0.08);
+  border: 1px solid rgba(108,71,255,0.22);
+}
+
+  
   /* Sidebar */
   .sidebar {
   width: 70px;
@@ -107,67 +157,67 @@
   align-items: center;
   padding: 20px 0;
   border-radius: 0 5px 5px 0;
-  margin-top: 60px; /* NEW */
-  height: calc(100vh - 60px); /* NEW */
 }
 
-  .logo {
-    width: 45px;
-    height: 45px;
-    border-radius: 50%;
-    overflow: hidden;
-    background-color: rgba(14, 14, 14, 0.3);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    backdrop-filter: blur(10px);
-  }
+.logo {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  overflow: hidden;                       /* clip zoomed image */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(14, 14, 14, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.4);  /* thin white ring */
+}
 
-  .logo img {
-    width: 100px;
-    height: 100px;
-    object-fit: cover;
-    border-radius: 50%;
-  }
+/* The image itself, zoomed but clipped */
+.logo img {
+  width: 80px;           /* bigger than container to create zoom */
+  height: 80px;
+  object-fit: cover;
+  border-radius: 50%;    /* ensures round edges match the mask */
+  display: block;
+}
 
-  .nav-icons {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-evenly;
-    align-items: center;
-    height: 100%;
-    padding: 40px 0;
-    gap: 25px;
-  }
+.nav-icons {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  align-items: center;
+  height: 100%;
+  padding: 10px 0;
+  gap: 5px;
+}
 
-  .nav-icons i {
-    color: white;
-    font-size: 20px;
-    padding: 10px;
-    cursor: pointer;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 50%;
-    transition: all 0.3s ease;
-  }
+.nav-icons i {
+  color: white;
+  font-size: 20px;
+  padding: 10px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
 
-  .nav-icons i:hover {
-    background: rgba(255, 255, 255, 0.2);
-  }
+.nav-icons i:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
 
-  .bottom-section {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 20px;
-  }
+.bottom-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
 
-  .avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-  }
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
 
  
 /* Side Panel Glassmorphism */
@@ -394,11 +444,12 @@
 
   }
   /* Top Navigation */
+/* Top Navigation */ 
 .top-nav {
   position: fixed;
   top: 0;
-  left: 0;
-  width: 100vw;
+  left: 70px;              /* push navbar right by sidebar width */
+  width: calc(100vw - 70px); /* shrink width to fill remaining space */
   height: 60px;
   display: flex;
   align-items: center;
@@ -407,9 +458,9 @@
   background: rgba(0, 26, 44, 0.98);
   z-index: 1000;
   box-shadow: 0 4px 24px 0 rgba(31,38,135,0.09);
-    flex: 0 0 auto; /* header stays at top */
-
+  flex: 0 0 auto; /* header stays at top */
 }
+
 
   .top-nav .logo-text {
     font-weight: 600;
@@ -743,4 +794,13 @@
 .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
 @keyframes typing-bounce {
   to { opacity: 1; transform: translateY(-7px);}
+}
+
+body.light-mode .side-panel .bottom-buttons > a,
+body.light-mode .side-panel .bottom-buttons .footer-text {
+  color: #111;
+}
+body.light-mode .side-panel .bottom-buttons > a i {
+  color: #111;
+  background: rgba(0,0,0,0.04);
 }

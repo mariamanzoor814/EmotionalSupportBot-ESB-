@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
 
-/*---- THEME VARIABLES ----*/
+/*---- THEME VARIABLES (DARK ONLY) ----*/
 :root {
   /* Default dark mode */
   --background: #131316;
@@ -23,30 +23,12 @@
   --legend-bg: #fff;
   --legend-color: #222;
   --donut-text: #fff;
-}
-:root[data-theme="light"] {
-  --background: #f3f5fa;
-  --surface: #fff;
-  --surface-2: #e0e4f2;
-  --text: #222;
-  --text-secondary: #484848;
-  --primary: #1060e3;
-  --primary-alt: #88b6dd;
-  --accent: #b86ee5;
-  --bar-bg: #599b97;
-  --pill-selected: #1060e3;
-  --pill-bg: #ddeafd;
-  --pill-color: #18181b;
-  --section-header-bg: #bde3e1;
-  --section-header-color: #18181b;
-  --glass-bg: rgba(255,255,255,0.98);
-  --glass-border: #ddeafd;
-  --glass-boxshadow: 0 0 34px #ddeafd55;
-  --legend-bg: #23232d;
-  --legend-color: #fff;
-  --donut-text: #23232d;
+
+  /* helper tokens */
+  --glass-shadow: var(--glass-boxshadow);
 }
 
+/* Page base */
 body {
   background: var(--background);
   color: var(--text);
@@ -59,19 +41,630 @@ body {
   display: flex;
   min-height: 100vh;
 }
+
+/* ====================================================
+   LIGHT THEME (paste this AT THE END of your CSS file)
+   Activate with: <body class="light-mode"> OR
+                 <html data-theme="light"> OR
+                 <body class="light-theme">
+   ==================================================== */
+
+/* alias selectors so any toggle works */
+body.light-mode,
+body.light-theme,
+[data-theme="light"],
+body.light-mode * ,
+body.light-theme * ,
+[data-theme="light"] * {
+  transition: background-color .18s ease, color .18s ease, border .12s ease, box-shadow .12s ease;
+}
+
+/* light-mode variables (only active when one of the above selectors applies) */
+body.light-mode,
+body.light-theme,
+[data-theme="light"] {
+  --background: #f3f5fa;
+  --surface: #ffffff;
+  --surface-2: #f0f4fb;
+  --text: #111111;
+  --text-secondary: #545b63;
+  --primary: #1060e3;
+  --accent: #6c47ff;
+  --bar-bg: #e8eefb;
+  --pill-bg: #ddeafd;
+  --pill-selected: #1060e3;
+  --pill-color: #18181b;
+  --section-header-bg: #bde3e1;
+  --glass-bg: rgba(224, 224, 224, 0.75);   /* your requested rgba(224,224,224,0.7) with tiny boost */
+  --glass-border: rgba(0,0,0,0.08);
+  --glass-shadow: 0 8px 32px rgba(2,6,23,0.06);
+  --legend-bg: #23232d;
+  --legend-color: #fff;
+  --donut-text: #23232d;
+  --icon-bg-light: rgba(0,0,0,0.06);
+  --nav-icon-color: #111;
+}
+
+
+/* Page background & base text */
+body.light-mode,
+body.light-theme,
+[data-theme="light"] {
+  background: var(--background) !important;
+  color: var(--text) !important;
+}
+
+
+
+.circle-bg {
+  position: absolute;
+  pointer-events: none;
+  z-index: 1;
+  filter: blur(2px);
+}
+body.light-mode :is(.top-nav, .sidebar),
+[data-theme="light"] :is(.top-nav, .sidebar) {
+  --glass-bg: rgba(224,224,224,0.75);   /* their original, less transparent */
+  --glass-tint: rgba(255,255,255,0.10); /* optional: a touch of white */
+}
+
+/* Make ONLY main area + cards extra-transparent in LIGHT MODE */
+body.light-mode :is(.main, .main-content, .glass-card, .mood-trends-card),
+[data-theme="light"] :is(.main, .main-content, .glass-card, .mood-trends-card) {
+  --glass-bg: rgba(224,224,224,0.34);
+  --glass-tint: rgba(245,245,247,0.04);
+  --glass-border: rgba(0,0,0,0.06);
+  --glass-shadow: 0 8px 28px rgba(12,18,24,0.035);
+  --glass-blur: 12px;
+  --glass-saturate: 100%;
+  --glass-contrast: 1;
+}
+
+
+/* Core surfaces: sidebar, side-panel, top-nav, main-content, glass-card, mood-trends-card */
+body.light-mode .sidebar,
+body.light-mode .side-panel,
+body.light-mode .top-nav,
+body.light-mode .glass-card,
+body.light-mode .mood-trends-card,
+body.light-mode .chat-input-bar,
+[data-theme="light"] .sidebar,
+[data-theme="light"] .side-panel,
+[data-theme="light"] .top-nav,
+[data-theme="light"] .glass-card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(250,250,250,0.92));
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  color: var(--text);
+}
+
+/* Sidebar specifics: keep icons visible and contrasted */
+body.light-mode .sidebar,
+[data-theme="light"] .sidebar {
+  background: var(--glass-bg);
+}
+
+/* Nav icons (dark glyphs on subtle pale background) */
+body.light-mode .nav-icons i,
+[data-theme="light"] .nav-icons i,
+body.light-mode .sidebar .bottom-section i,
+[data-theme="light"] .sidebar .bottom-section i {
+  color: var(--nav-icon-color) !important;
+  background: var(--icon-bg-light) !important;
+  box-shadow: none !important;
+  border-radius: 50%;
+}
+
+/* Hover state for icons */
+body.light-mode .nav-icons i:hover,
+[data-theme="light"] .nav-icons i:hover {
+  background: rgba(0,0,0,0.10) !important;
+  color: var(--accent) !important;
+  transform: translateY(-3px);
+}
+
+/* Top nav */
+body.light-mode .top-nav,
+[data-theme="light"] .top-nav {
+  background: var(--glass-bg);
+  color: var(--text);
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+}
+
+/* center icons in top nav: dark circular glyphs */
+body.light-mode .top-nav .center-icons i,
+[data-theme="light"] .top-nav .center-icons i {
+  background-color: #111;
+  color: #fff;
+}
+
+/* Main content: preserve glass effect (not flat white) */
+body.light-mode .main-content,
+[data-theme="light"] .main-content {
+  background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(248,248,248,0.90));
+  border: 1px solid rgba(0,0,0,0.04);
+  box-shadow: 0 12px 28px rgba(18, 24, 36, 0.04);
+  color: var(--text);
+}
+
+/* Side-panel: slightly darker glass for contrast */
+body.light-mode .side-panel,
+[data-theme="light"] .side-panel {
+  background: linear-gradient(180deg, rgba(250,250,250,0.96), rgba(245,245,245,0.96));
+  border-right: 1.2px solid rgba(0,0,0,0.06);
+  color: var(--text);
+}
+
+/* Buttons / controls */
+body.light-mode .reanalyze-button,
+[data-theme="light"] .reanalyze-button {
+  background: linear-gradient(90deg, #3b82f6 0%, #6656e6 100%);
+  color: #fff;
+  box-shadow: 0 6px 22px rgba(59,130,246,0.12);
+}
+
+/* Chat history items / message bubbles in light mode */
+body.light-mode .chat-history-item,
+[data-theme="light"] .chat-history-item {
+  background: rgba(255,255,255,0.9);
+  color: var(--text);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+}
+
+/* Message bubble adjustments for readability */
+body.light-mode .bot-message .message-bubble,
+[data-theme="light"] .bot-message .message-bubble {
+  background: rgba(224,224,224,0.9);
+  color: #111;
+}
+body.light-mode .user-message .message-bubble,
+[data-theme="light"] .user-message .message-bubble {
+  background: rgba(59,130,246,0.9);
+  color: #fff;
+}
+
+/* Chat input bar: readable dark text on pale glass */
+body.light-mode .chat-input-bar,
+[data-theme="light"] .chat-input-bar,
+body.light-mode .chat-form,
+[data-theme="light"] .chat-form {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  color: var(--text);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+  backdrop-filter: blur(8px) saturate(120%);
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
+}
+
+/* input text, placeholder, caret */
+body.light-mode .chat-input,
+[data-theme="light"] .chat-input {
+  color: #111;
+  caret-color: #111;
+  background: transparent;
+}
+body.light-mode .chat-input::placeholder,
+[data-theme="light"] .chat-input::placeholder {
+  color: rgba(17,17,17,0.45);
+}
+
+/* Chat input icons and button */
+body.light-mode .chat-input-bar i,
+[data-theme="light"] .chat-input-bar i,
+body.light-mode .chat-input-bar .icon,
+[data-theme="light"] .chat-input-bar .icon {
+  color: #444;
+}
+body.light-mode .chat-input-bar button,
+[data-theme="light"] .chat-input-bar button {
+  background-color: var(--accent);
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(108,71,255,0.12);
+}
+
+/* Mood-trends bars on light bg: keep off-white but visible */
+body.light-mode .bar,
+[data-theme="light"] .bar {
+  background: linear-gradient(180deg, rgba(235,235,235,1), rgba(215,215,215,1));
+  border: 1px solid rgba(0,0,0,0.06);
+  box-shadow: inset 0 -6px 12px rgba(0,0,0,0.04);
+}
+body.light-mode .bar-label,
+[data-theme="light"] .bar-label { color:#333; }
+
+/* side-panel bottom buttons / footer links */
+body.light-mode .side-panel .bottom-buttons > a,
+[data-theme="light"] .side-panel .bottom-buttons > a,
+body.light-mode .side-panel .bottom-buttons .footer-text,
+[data-theme="light"] .side-panel .bottom-buttons .footer-text {
+  color: #111;
+}
+body.light-mode .side-panel .bottom-buttons > a i,
+[data-theme="light"] .side-panel .bottom-buttons > a i {
+  color: #111;
+  background: rgba(0,0,0,0.04);
+}
+
+/* avatar contrast / borders */
+body.light-mode .profile-img,
+[data-theme="light"] .profile-img,
+body.light-mode .avatar,
+[data-theme="light"] .avatar {
+  border: 2px solid #3b82f6;
+  background: #fff;
+}
+
+/* scrollbar tweaks for light mode */
+body.light-mode .chat-history::-webkit-scrollbar-thumb,
+[data-theme="light"] .chat-history::-webkit-scrollbar-thumb {
+  background: #254c8b;
+}
+
+/* fallback specificity: override inline color on nav icons if present */
+body.light-mode .nav-icons i[style],
+[data-theme="light"] .nav-icons i[style],
+body.light-mode .nav-icons i[style] * {
+  color: var(--nav-icon-color) !important;
+  background: var(--icon-bg-light) !important;
+}
+
+/* accessibility: focus outlines in light mode */
+body.light-mode .chat-form:focus-within,
+[data-theme="light"] .chat-form:focus-within {
+  box-shadow: 0 0 0 3px rgba(108,71,255,0.08);
+  border: 1px solid rgba(108,71,255,0.22);
+}
+
+/* tiny smoothing transition */
+body.light-mode,
+[data-theme="light"] {
+  transition: background-color .18s ease, color .18s ease;
+}
+
+
+/* Add dropdown styling */
+.dropdown {
+  position: relative;
+  display: inline-block;
+  margin-left: auto;
+}
+.dropdown-content {
+  display: none;
+  position: absolute;
+  right: 0;
+  background: #31333f;
+  min-width: 120px;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px #0003;
+  z-index: 12;
+}
+.dropdown-content button {
+  width: 100%;
+  padding: 12px;
+  background: none;
+  border: none;
+  color: #fff;
+  text-align: left;
+  cursor: pointer;
+  font-size: 1em;
+  border-radius: 10px;
+}
+.dropdown-content button:hover,
+.dropdown-content button.selected {
+  background: #599b97;
+  color: #18181b;
+}
+.dropdown:hover .dropdown-content {
+  display: block;
+}
+.date-pill.selected {
+  background: #1060e3;
+  color: #fff;
+  box-shadow: 0 4px 18px #1060e355;
+}
+.date-pill {
+  cursor: pointer;
+}
+
+.main {
+  margin-left: 70px;
+  width: calc(100% - 70px);
+  flex: 0 0 auto;
+}
+
+/* TOP NAVBAR */
+.top-nav {
+  position: fixed;
+  top: 0;
+  left: 70px;      /* start after the sidebar */
+  right: 0;        /* stretch to right edge */
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 30px; /* safe spacing inside */
+  box-sizing: border-box;
+  z-index: 100;
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border-bottom: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+.top-nav .logo-text {
+  font-weight: 600;
+  font-size: 22px;
+  color: #fff;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}
+
+.top-nav .center-icons {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+}
+
+.top-nav .center-icons i {
+  font-size: 16px;
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border-radius: 50%;
+  padding: 8px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.top-nav .center-icons i:hover {
+  background-color: rgba(255,255,255,0.28);
+  color: #29b9f1;
+}
+
+.top-nav .right-avatar img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+
+
+
+/* SIDEBAR */
 .sidebar {
   width: 72px;
-  background: var(--surface);
+  min-width: 70px;
+  height: 80%;
+  position: fixed;
+  top: 0px;
+  left: 0;
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border-right: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  border-radius: 0 8px 8px 0;
+  z-index: 5;
+  min-height: 98vh;
+}
+
+.logo {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  overflow: hidden;                       /* clip zoomed image */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(14, 14, 14, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.4);  /* thin white ring */
+}
+
+/* The image itself, zoomed but clipped */
+.logo img {
+  width: 80px;           /* bigger than container to create zoom */
+  height: 80px;
+  object-fit: cover;
+  border-radius: 50%;    /* ensures round edges match the mask */
+  display: block;
+}
+
+.nav-icons {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  align-items: center;
+  height: 100%;
+  padding: 10px 0;
+  gap: 5px;
+}
+
+.nav-icons i {
+  color: white;
+  font-size: 20px;
+  padding: 10px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.nav-icons i:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.bottom-section {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  min-height: 100vh;
-  padding-bottom: 18px;
-  position: fixed;
-  left: 0; top: 0;
-  z-index: 5;
+  gap: 20px;
 }
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  margin-bottom: 7px;
+}
+
+/* ---------- Mood trends: glass container + off-white bars ---------- */
+.mood-trends-card {
+  margin-top: 8px;
+  background: var(--glass-bg);                      /* match other glass cards */
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  padding: 12px;
+  border-radius: 12px;
+  overflow: hidden;
+  width: 100%;
+  box-shadow: var(--glass-shadow);
+}
+
+/* Chart scroller */
+.bar-chart {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;        /* ensures bars grow from bottom */
+  padding: 14px 12px 18px 12px; /* space for bar-labels */
+  overflow-x: auto;            /* horizontal scroll for many bars */
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  border-radius: 8px;
+  background: transparent;      /* keep glass look clean */
+  min-height: 160px;
+}
+
+/* control each bar column width so many bars produce a scrollbar */
+.bar-item {
+  flex: 0 0 48px;              /* fixed column width; changes with JS helper below */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 44px;
+}
+
+/* off-white bars (subtle shading + nice bottom rounding) */
+.bar {
+  width: 36px;
+  height: 80px; /* fallback - actual heights set inline */
+  border-radius: 6px 6px 4px 4px;
+  transition: transform .12s ease, box-shadow .12s ease;
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  align-items: flex-end;       /* inner content (tooltip) sits above bar bottom) */
+  justify-content: center;
+
+  /* off-white base with subtle border + inner shadow for depth */
+  background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,255,255,0.82));
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: inset 0 -8px 14px rgba(0,0,0,0.06);
+}
+
+/* hover lift */
+.bar:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 10px 22px rgba(0,0,0,0.20);
+}
+
+/* subtle variants for pos/neu/neg while keeping off-white theme */
+.bar.pos { /* positive = slightly brighter */ 
+  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.86));
+}
+.bar.neu { /* neutral = slightly less bright */
+  background: linear-gradient(180deg, rgba(255,255,255,0.90), rgba(255,255,255,0.78));
+  color: #111; /* better contrast if you place text inside */
+}
+.bar.neg { /* negative = slightly dimmer */
+  background: linear-gradient(180deg, rgba(255,255,255,0.82), rgba(255,255,255,0.70));
+}
+
+/* tooltip */
+.bar-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px);
+  background: rgba(0,0,0,0.8);
+  color: #fff;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .12s ease, transform .12s ease;
+}
+.bar:hover .bar-tooltip {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-12px);
+}
+
+/* bar label under each bar */
+.bar-label {
+  margin-top: 6px;
+  font-size: 12px;
+  text-align: center;
+  white-space: nowrap;
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #e6eefc; /* light text to match glass theme */
+}
+
+/* scrollbar styling - subtle, light thumb to match glass */
+.bar-chart::-webkit-scrollbar { height: 8px; }
+.bar-chart::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.12);
+  border-radius: 8px;
+}
+.bar-chart::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.18);
+}
+.bar-chart::-webkit-scrollbar-track { background: transparent; }
+
+/* ensure first/last bars aren't visually clipped and scrolling has comfortable padding */
+.bar-chart {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  padding: 14px 12px 18px 12px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  scroll-padding-inline: 12px;
+  border-radius: 8px;
+  background: transparent;
+  min-height: 160px;
+}
+
+/* minimal inner wrapper so outer scroller maps to every bar */
+.bar-chart-inner {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  width: max-content;   /* let content define width */
+  min-width: 100%;      /* avoid collapsing smaller than container */
+}
+
+/* optional: make scrollbar appear inside the padded area nicely */
+.bar-chart::-webkit-scrollbar { height:8px; }
+.bar-chart::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius:8px; }
+
 .sidebar-icons {
   display: flex;
   flex-direction: column;
@@ -328,6 +921,7 @@ main {
   flex-wrap: wrap;
   justify-content: flex-start;
 }
+
 .mood-legend-box {
   background: var(--legend-bg);
   border-radius: 18px;
@@ -409,11 +1003,9 @@ main {
 .top-nav .center-icons .moon {
   color: #8ecae6;
 }
-[data-theme="light"] .top-nav .center-icons .sun {
+/* Sun/moon icons have sensible default colors since light mode is removed */
+.top-nav .center-icons .sun {
   color: #ffd60a;
-}
-[data-theme="dark"] .top-nav .center-icons .moon {
-  color: #fff;
 }
 
 @media (max-width: 900px) {
@@ -428,3 +1020,4 @@ main {
   .donut-chart { width: 120px; height: 120px;}
   .mood-legend-box { padding: 12px 14px;}
 }
+

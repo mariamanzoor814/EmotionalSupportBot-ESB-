@@ -99,38 +99,113 @@ def get_active_chat_session_id(user_id):
         session['chat_session_id'] = chat_session_id
     return session['chat_session_id']
 
+import json
 def analyze_sentiment(questions, answers):
     combined_text = " ".join([f"Q: {q} A: {a}" for q, a in zip(questions, answers)])
     prompt = (
         f"Analyze the emotional tone of the following text and return:\n"
-        f"1. The **specific mood label** (like anxious, content, burned out).\n"
-        f"2. A **confidence score** from 0 to 1.\n"
-        f"3. The **sentiment** (positive, negative, neutral).\n\n"
+        f"1. The specific mood label (like anxious, content, burned out).\n"
+        f"2. A confidence score from 0 to 1.\n"
+        f"3. The sentiment (positive, negative, neutral).\n\n"
         f"Text: \"{combined_text}\"\n\n"
-        f"Return your answer in this format:\n"
-        f"mood: <label>\nconfidence: <float>\nsentiment: <sentiment>"
+        "Return your answer in plain text or JSON. If plain text, use this format:\n"
+        "mood: <label>\nconfidence: <float>\nsentiment: <sentiment>\n\n"
+        "If you return JSON, it should be an object with keys: mood, confidence, sentiment."
     )
+
     try:
-        response = generate_content(prompt)
-        lines = response.lower().splitlines()
-        mood_label = next((line.split(":",1)[1].strip() for line in lines if "mood" in line), "unknown")
-        confidence = float(next((line.split(":",1)[1].strip() for line in lines if "confidence" in line), 0.0))
-        sentiment = next((line.split(":",1)[1].strip() for line in lines if "sentiment" in line), "neutral")
-        return mood_label, confidence, sentiment
+        raw = generate_content(prompt)  # use your wrapper
+        text = (raw or "").strip()
+        # Try JSON first
+        m = re.search(r'(\{[\s\S]*\})', text)
+        if m:
+            try:
+                payload = json.loads(m.group(1))
+                mood_label = str(payload.get("mood") or payload.get("label") or payload.get("mood_label") or "unknown")
+                confidence = float(payload.get("confidence", 0.0) or 0.0)
+                sentiment = str(payload.get("sentiment", "neutral") or "neutral")
+                return mood_label, max(0.0, min(1.0, confidence)), sentiment.lower()
+            except Exception:
+                pass
+
+        # Fallback: parse lines like "mood: ...", "confidence: ...", "sentiment: ..."
+        lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+        mood_label = "unknown"
+        confidence = 0.0
+        sentiment = "neutral"
+        for line in lines:
+            parts = line.split(":", 1)
+            if len(parts) != 2:
+                continue
+            key, val = parts[0].strip().lower(), parts[1].strip()
+            if key.startswith("mood"):
+                mood_label = val
+            elif key.startswith("confidence"):
+                try:
+                    confidence = float(re.findall(r"[-+]?\d*\.?\d+|\d+", val)[0])
+                except Exception:
+                    confidence = 0.0
+            elif key.startswith("sentiment"):
+                sentiment = val.lower()
+        return mood_label, max(0.0, min(1.0, confidence)), sentiment
     except Exception as e:
         print(f"LLM Sentiment Analysis Error: {e}")
         return "unclear", 0.0, "neutral"
-
+    
+import re
 def smart_mood_label(questions, answers, model_label, confidence):
-    positive_words = ["good", "yes", "energetic", "productive", "happy", "mostly", "fine", "great", "okay"]
-    negative_words = ["no", "sad", "tired", "overwhelmed", "not really", "bad", "lonely"]
-    positive_count = sum(any(word in a.lower() for word in positive_words) for a in answers)
-    negative_count = sum(any(word in a.lower() for word in negative_words) for a in answers)
-    if model_label in ("surprise", "neutral") and positive_count > negative_count + 2:
-        return "content", max(confidence, 0.7), "positive"
-    if model_label in ("surprise", "neutral") and negative_count > positive_count + 2:
-        return "sadness", max(confidence, 0.7), "negative"
-    return model_label, confidence, "neutral" if model_label == "neutral" else "positive" if model_label in positive_words else "negative"
+    """
+    Return (final_label, final_confidence, sentiment)
+    """
+    positive_words = ["good", "yes", "energetic", "productive", "happy", "mostly", "fine", "great", "okay", "ok"]
+    negative_words = ["no", "sad", "tired", "overwhelmed", "not really", "bad", "lonely", "depressed", "anxious", "stressed"]
+
+    # Normalize inputs
+    ml = (model_label or "").strip().lower()
+    try:
+        confidence = float(confidence or 0.0)
+    except Exception:
+        confidence = 0.0
+
+    def contains_any(text, words):
+        if not text:
+            return False
+        t = text.lower()
+        for w in words:
+            if re.search(r'\b' + re.escape(w) + r'\b', t):
+                return True
+        return False
+
+    positive_count = sum(1 for a in answers if contains_any(a, positive_words)) if answers else 0
+    negative_count = sum(1 for a in answers if contains_any(a, negative_words)) if answers else 0
+
+    # Heuristic overrides when model is neutral/surprised/empty
+    if ml in ("surprise", "neutral", ""):
+        if positive_count > negative_count + 2:
+            return "content", max(confidence, 0.7), "positive"
+        if negative_count > positive_count + 2:
+            return "sadness", max(confidence, 0.7), "negative"
+
+    # Map common labels to sentiment
+    positive_labels = {"content", "happy", "joy", "positive", "optimistic", "satisfied", "calm", "relieved"}
+    negative_labels = {"sadness", "sad", "depressed", "angry", "fear", "anxious", "negative", "stressed", "overwhelmed", "burnout"}
+
+    if ml in positive_labels:
+        sentiment = "positive"
+    elif ml in negative_labels:
+        sentiment = "negative"
+    else:
+        # fallback to counts
+        if positive_count > negative_count:
+            sentiment = "positive"
+        elif negative_count > positive_count:
+            sentiment = "negative"
+        else:
+            sentiment = "neutral"
+
+    final_label = model_label or ("content" if sentiment == "positive" else ("sadness" if sentiment == "negative" else "neutral"))
+    return final_label, confidence, sentiment
+
 
 class FirestoreModels:
     def __init__(self):
