@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Signup | Emotional Support Bot</title>
-
-  <!-- Your CSS -->
+    <link rel="icon" href="static/favicon.png" type="image/png">
+  <!--  CSS -->
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='alert.css') }}">
 
@@ -241,6 +241,62 @@
     gsiContainer.style.opacity = '';
   }
 }
+
+// Reuse your patterns
+const usernameInput = document.getElementById('username');
+const emailInput = document.getElementById('email');
+const usernameError = document.getElementById('usernameError');
+const emailError = document.getElementById('emailError');
+
+const usernamePattern = /^[A-Za-z][A-Za-z0-9_.-]{2,19}$/;
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// --- Username live validation ---
+usernameInput.addEventListener('input', () => {
+  const value = usernameInput.value.trim();
+
+  if (!value) {
+    usernameError.textContent = 'Username is required (must start with a letter).';
+    usernameError.style.display = 'block';
+    usernameInput.classList.add('error');
+  } else if (!usernamePattern.test(value)) {
+    usernameError.textContent =
+      'Invalid username: must start with a letter, be 3–20 characters, and only use letters, numbers, ".", "_" or "-".';
+    usernameError.style.display = 'block';
+    usernameInput.classList.add('error');
+  } else {
+    usernameError.textContent = '';
+    usernameError.style.display = 'none';
+    usernameInput.classList.remove('error');
+  }
+});
+
+
+// --- Email live validation ---
+emailInput.addEventListener('input', () => {
+  const value = emailInput.value.trim();
+  if (!value) {
+    emailError.textContent = 'Email is required';
+    emailError.style.display = 'block';
+  } else if (!emailPattern.test(value)) {
+    emailError.textContent = 'Enter a valid email address';
+    emailError.style.display = 'block';
+  } else {
+    emailError.textContent = '';
+    emailError.style.display = 'none';
+  }
+});
+
+
+function checkFormValidity() {
+  const valid = 
+    usernamePattern.test(usernameInput.value.trim()) &&
+    emailPattern.test(emailInput.value.trim());
+  document.getElementById('signupSubmitBtn').disabled = !valid;
+}
+usernameInput.addEventListener('input', checkFormValidity);
+emailInput.addEventListener('input', checkFormValidity);
+
   </script>
 </body>
 </html>

@@ -55,21 +55,20 @@ html, body {
 
 /* the circular mask that keeps layout 80×80 */
 .navbar__logo-frame{
-  width: 80px;
-  height: 80px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   overflow: hidden;                 /* clips the zoomed image */
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid #fff;           /* the white ring */
   margin-right: 12px;               /* space before brand text */
 }
 
 /* your existing class stays on the <img> — we “zoom” it */
 .navbar__logo-img{
-  width: 130px;                     /* zoomed content */
-  height: 130px;
+  width: 60px;                     /* zoomed content */
+  height: 60px;
   object-fit: cover;
   display: block;
 }

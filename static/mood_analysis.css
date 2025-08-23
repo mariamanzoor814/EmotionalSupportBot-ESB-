@@ -804,3 +804,16 @@ body.light-mode .side-panel .bottom-buttons > a i {
   color: #111;
   background: rgba(0,0,0,0.04);
 }
+.bot-avatar {
+  width: 60px;      /* increase for zoom effect */
+  height: 60px;     /* keep square for circle */
+  border-radius: 50%;   /* makes it circular, remove if you want full robot shape */
+  object-fit: cover;    /* crop nicely if image is not square */
+  transform: scale(1.2); /* slight zoom (20% bigger) */
+  transition: transform 0.2s ease;
+}
+
+.bot-avatar:hover {
+  transform: scale(1.4);  /* zoom more when hovered */
+}
+

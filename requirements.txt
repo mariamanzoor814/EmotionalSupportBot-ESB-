@@ -22,3 +22,6 @@ google-api-core
 
 # Gemini API (Google Generative AI)
 google-generativeai
+
+markupsafe
+werkzeug
