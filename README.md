@@ -2,10 +2,6 @@
 
 *Empowering Emotional Well-Being Through Compassionate AI*
 
-# EMOTIONALSUPPORTBOT-ESB-
-
-*Empowering Emotional Well-Being Through Compassionate AI*
-
 ![last commit](https://img.shields.io/github/last-commit/mariammanzoor814/EmotionalSupportBot-ESB?color=blue) 
 ![languages](https://img.shields.io/github/languages/count/mariammanzoor814/EmotionalSupportBot-ESB) 
 ![repo size](https://img.shields.io/github/repo-size/mariammanzoor814/EmotionalSupportBot-ESB) 
