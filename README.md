@@ -49,3 +49,32 @@ Build **EmotionalSupportBot-ESB-** from the source and install dependencies:
 1. **Clone the repository**
    ```bash
    git clone https://github.com/your-username/EmotionalSupportBot-ESB.git
+   
+2. **Navigate to the project directory**
+
+cd EmotionalSupportBot-ESB
+
+
+Install the dependencies
+
+pip install -r requirements.txt
+
+3.**Usage**
+
+Run the project with:
+
+python app.py
+
+
+Once running, open your browser and navigate to:
+
+http://localhost:5000
+
+
+---
+
+ This now includes **Clone Repo → Navigate → Install → Usage → Testing** steps exactly like your screenshots.  
+
+Do you want me to also **add a "Project Structure" section** (showing folder/files tree like `app.py`, `requirements.txt`, `templates/`, `static/`) so contributors instantly see how your repo is organized?
+
+   
