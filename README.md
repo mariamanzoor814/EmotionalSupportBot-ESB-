@@ -2,9 +2,15 @@
 
 *Empowering Emotional Well-Being Through Compassionate AI*
 
-![last commit](https://img.shields.io/github/last-commit/your-username/EmotionalSupportBot-ESB?color=blue) 
-![languages](https://img.shields.io/github/languages/count/your-username/EmotionalSupportBot-ESB) 
-![html](https://img.shields.io/badge/html-36.1%25-orange)
+# EMOTIONALSUPPORTBOT-ESB-
+
+*Empowering Emotional Well-Being Through Compassionate AI*
+
+![last commit](https://img.shields.io/github/last-commit/mariammanzoor814/EmotionalSupportBot-ESB?color=blue) 
+![languages](https://img.shields.io/github/languages/count/mariammanzoor814/EmotionalSupportBot-ESB) 
+![repo size](https://img.shields.io/github/repo-size/mariammanzoor814/EmotionalSupportBot-ESB) 
+![issues](https://img.shields.io/github/issues/mariammanzoor814/EmotionalSupportBot-ESB)
+![stars](https://img.shields.io/github/stars/mariammanzoor814/EmotionalSupportBot-ESB?style=social)
 
 Built with the tools and technologies:
 
@@ -12,6 +18,7 @@ Built with the tools and technologies:
 ![Markdown](https://img.shields.io/badge/Markdown-000000?logo=markdown)
 ![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white)
 ![Google Gemini](https://img.shields.io/badge/Google%20Gemini-8E44AD?logo=google)
+
 
 ---
 
@@ -51,16 +58,15 @@ Build **EmotionalSupportBot-ESB-** from the source and install dependencies:
    git clone https://github.com/your-username/EmotionalSupportBot-ESB.git
    
 2. **Navigate to the project directory**
-
-cd EmotionalSupportBot-ESB
-
+   ```bash
+    cd EmotionalSupportBot-ESB
 
 Install the dependencies
 
 pip install -r requirements.txt
 
 3.**Usage**
-
+  
 Run the project with:
 
 python app.py
