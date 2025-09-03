@@ -304,6 +304,25 @@ def send_otp_email(user_email, otp, flow_type):
     except Exception as e:
         print(f"Error in send_otp_email: {e}")
         raise  # Raise to the caller
+
+
+@app.route("/health")
+def health():
+    # Very lightweight — just proves the process is running
+    return jsonify(status="ok"), 200
+
+@app.route("/ready")
+def ready():
+    # Optional: check Firestore connectivity simply
+    try:
+        # cheap read: try to list 1 document from users (does not create writes)
+        _ = db.collection("users").limit(1).get()
+        return jsonify(status="ready"), 200
+    except Exception as e:
+        app.logger.exception("Readiness check failed")
+        return jsonify(status="db-unavailable", details=str(e)), 500
+
+
 @app.route('/')
 def home():
     return redirect(url_for('landing_page'))  # Or you can serve a home page if you prefer
@@ -2197,3 +2216,4 @@ def nl2br(s):
 
 if __name__ == '__main__':
     app.run(debug=True)   
+
