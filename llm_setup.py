@@ -2,9 +2,7 @@ import google.generativeai as genai
 import os
 from google.api_core.exceptions import InvalidArgument
 
-# Debug API key
 print("🔑 API Key:", os.getenv("GEMINI_API_KEY")[:6] + "..." if os.getenv("GEMINI_API_KEY") else "❌ Missing API Key")
-
 # Configure with explicit endpoint
 genai.configure(
     api_key=os.getenv("GEMINI_API_KEY"),

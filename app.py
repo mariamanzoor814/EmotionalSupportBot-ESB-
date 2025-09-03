@@ -86,7 +86,7 @@ flow = Flow.from_client_config(
 
 # Application Configuration
 app.config.update(
-    SECRET_KEY=os.getenv("SECRET_KEY", "default_secret_key"),
+    SECRET_KEY=os.getenv("SECRET_KEY"),
     SESSION_COOKIE_NAME='esb_session',
     SESSION_COOKIE_SAMESITE='Lax',
     SESSION_COOKIE_SECURE=False,
@@ -250,10 +250,7 @@ def markdown_filter(s):
     html = re.sub(r'<code>', r'<code class="hljs">', html)
     return Markup(html)
 
-# def require_login():
-#     allowed_routes = ['login', 'signup', 'verify_otp', 'forgot_password', 'static']
-#     if 'user_id' not in session and request.endpoint not in allowed_routes:
-#         return redirect(url_for('login'))
+
 
 def decode_jwt_unverified(token):
     """Return JWT payload as dict without verifying signature."""
@@ -276,7 +273,7 @@ def generate_otp():
 
 def send_otp_email(user_email, otp, flow_type):
     try:
-        print(f"📩 Sending OTP to: {user_email}")
+        print(f"Sending OTP to: {user_email}")
 
         msg = MIMEMultipart()
         msg["From"] = EMAIL_SENDER
@@ -299,13 +296,13 @@ def send_otp_email(user_email, otp, flow_type):
                 server.starttls()
                 server.login(EMAIL_SENDER, EMAIL_PASSWORD)
                 response = server.sendmail(EMAIL_SENDER, user_email, msg.as_string())
-                print("✅ OTP email sent successfully!", response)  # Log the response to verify success
+                print(" OTP email sent successfully!", response)  # Log the response to verify success
         except Exception as e:
-            print(f"🚨 Email Sending Error: {e}")
+            print(f" Email Sending Error: {e}")
             raise  # Raise the error so it can be handled by the outer exception block
 
     except Exception as e:
-        print(f"🚨 Error in send_otp_email: {e}")
+        print(f"Error in send_otp_email: {e}")
         raise  # Raise to the caller
 @app.route('/')
 def home():
@@ -453,7 +450,7 @@ def verify_otp():
                     return redirect(url_for('dashboard'))
 
                 except Exception as user_creation_err:
-                    print(f"🔥 User creation failed: {str(user_creation_err)}")
+                    print(f" User creation failed: {str(user_creation_err)}")
                     # Cleanup Firebase user if created partially
                     try:
                         if 'user' in locals() and getattr(user, 'uid', None):
@@ -567,7 +564,7 @@ def signup():
                 expires_at = now + timedelta(minutes=10)
 
                 try:
-                    print("📝 Storing OTP in Firestore for signup...")
+                    print(" Storing OTP in Firestore for signup...")
 
                     # Store OTP in Firestore
                     db.collection("signup_otps").document(email).set({
@@ -578,14 +575,14 @@ def signup():
                         "expires_at": expires_at
                     })
 
-                    print("✅ OTP stored in Firestore successfully.")
+                    print(" OTP stored in Firestore successfully.")
                     
                     # Send OTP via Email
                     try:
                         send_otp_email(email, otp, flow_type="signup")
-                        print(f"📨 OTP email sent to {email}.")
+                        print(f" OTP email sent to {email}.")
                     except Exception as email_err:
-                        print("❌ Failed to send OTP email:", str(email_err))
+                        print(" Failed to send OTP email:", str(email_err))
                         flash("Failed to send OTP. Please try again later.", "danger")
                         return redirect(url_for('signup'))
 
@@ -600,11 +597,11 @@ def signup():
                     return redirect(url_for('verify_otp'))
 
                 except Exception as firestore_err:
-                    print("🔥 Firestore write failed:", str(firestore_err))
+                    print(" Firestore write failed:", str(firestore_err))
                     flash("An error occurred while processing your request. Try again later.", "danger")
                     return redirect(url_for('signup'))
         else:
-            print("⚠️ Signup form not validated")
+            print(" Signup form not validated")
             print(form.errors)
             flash("Please fill in all fields correctly.", "warning")
 
@@ -672,11 +669,11 @@ def google_login():
                 "email": email,
                 "username": name,
                 "profile_picture": picture,
-                "login_provider": "google",   # ✅ always set login_provider
+                "login_provider": "google",   #  always set login_provider
                 "created_at": firestore.SERVER_TIMESTAMP if 'firestore' in globals() else datetime.utcnow()
             }, merge=True)
         else:
-            updates = {"login_provider": "google"}  # ✅ refresh login_provider
+            updates = {"login_provider": "google"}  # refresh login_provider
             data = snap.to_dict()
             if not data.get("profile_picture") and picture:
                 updates["profile_picture"] = picture
@@ -1744,7 +1741,7 @@ def start_chat():
         'active': True
     })
 
-    flash("🔵 New chat session started!", "info")
+    flash(" New chat session started!", "info")
     return redirect(url_for('chat', chat_session_id=chat_session_id))
 
 @app.route('/end-chat', methods=['GET'])
@@ -1787,11 +1784,11 @@ def end_chat():
             session_end=session_end
         )
 
-        flash("✅ Chat session saved successfully.", "success")
+        flash(" Chat session saved successfully.", "success")
 
     except Exception as e:
         print(f"[ERROR] Failed to end chat session: {e}")
-        flash(f"❌ Failed to save chat session: {str(e)}", "error")
+        flash(f" Failed to save chat session: {str(e)}", "error")
 
     # Clear session data
     session.pop('chat_session_id', None)
@@ -1800,28 +1797,6 @@ def end_chat():
     return redirect(url_for('dashboard'))
 
 
-# @csrf.exempt
-# @app.route('/get-chat-history/<chat_session_id>', methods=['GET'])
-# def get_chat_history_route(chat_session_id):
-#     try:
-#         # Get user ID from both session and current_user for compatibility
-#         user_id = session.get('user_id') or current_user.id
-        
-#         messages_ref = db.collection('users').document(user_id)\
-#             .collection('chats').document(chat_session_id)\
-#             .collection('messages')
-            
-#         chat_history = [{
-#             'id': msg.id,
-#             'sender': msg.get('sender'),
-#             'message': msg.get('message'),
-#             'timestamp': msg.get('timestamp').strftime('%Y-%m-%d %H:%M')
-#         } for msg in messages_ref.order_by("timestamp").stream()]
-        
-#         return jsonify({'history': chat_history}), 200
-        
-#     except Exception as e:
-#         return jsonify({'error': str(e)}), 500
 
 @csrf.exempt
 @app.route('/delete-chat/<chat_session_id>', methods=['DELETE'])
@@ -1864,7 +1839,7 @@ def chat(chat_session_id):
     form = ChatForm()
     user_id = current_user.id
 
-    # ✅ Fetch user profile from Firestore
+    #  Fetch user profile from Firestore
     user_ref = db.collection("users").document(user_id)
     user_doc = user_ref.get()
     if not user_doc.exists:
@@ -1873,7 +1848,7 @@ def chat(chat_session_id):
 
     user_data = user_doc.to_dict()
 
-    # ✅ Determine profile avatar (Google profile picture OR initials)
+    #  Determine profile avatar (Google profile picture OR initials)
     if user_data.get("login_provider") == "google" and user_data.get("profile_picture"):
         profile_avatar = user_data["profile_picture"]
         is_initials = False
@@ -1883,7 +1858,7 @@ def chat(chat_session_id):
         profile_avatar = initials
         is_initials = True
 
-    # ✅ Handle chat session
+    # Handle chat session
     if not chat_session_id:
         chat_session_id = session.get('chat_session_id')
         if not chat_session_id:
@@ -1898,7 +1873,7 @@ def chat(chat_session_id):
         })
     session['chat_session_id'] = chat_session_id
 
-    # ✅ Fetch messages
+    # Fetch messages
     messages_ref = chat_doc_ref.collection('messages')
     chat_history = [msg.to_dict() for msg in messages_ref.order_by("timestamp").stream()]
 
@@ -1908,7 +1883,7 @@ def chat(chat_session_id):
         chat_history=chat_history,
         chat_session_id=chat_session_id,
         session_list=get_user_sessions(user_id),
-        # 🆕 User profile data
+        # User profile data
         user_email=user_data.get("email"),
         username=user_data.get("username"),
         profile_avatar=profile_avatar,
@@ -2221,4 +2196,4 @@ def nl2br(s):
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True)   

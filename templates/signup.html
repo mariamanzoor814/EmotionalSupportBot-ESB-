@@ -47,7 +47,7 @@
 
           <!-- Email -->
           <div class="form-group">
-            {{ form.email(id="email", placeholder="Email / Phone", class="form-control") }}
+            {{ form.email(id="email", placeholder="Email", class="form-control") }}
             <div id="emailError" class="error-message">
               {% for error in form.email.errors %}
                 {{ error }}

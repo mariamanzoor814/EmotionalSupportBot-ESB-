@@ -687,3 +687,33 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => { if (chatInput) chatInput.focus(); }, 100);
   });
 });
+
+
+
+function showWaitMessage() {
+  document.getElementById("wait-msg").style.display = "flex";
+}
+
+function hideWaitMessage() {
+  document.getElementById("wait-msg").style.display = "none";
+}
+
+// Example usage when sending message
+document.getElementById("chatForm").addEventListener("submit", function (e) {
+  e.preventDefault();
+  showWaitMessage();
+
+  fetch("/send_message", { 
+    method: "POST", 
+    body: new FormData(this) 
+  })
+  .then(resp => resp.json())
+  .then(data => {
+    hideWaitMessage();
+    // add bot reply to chat window...
+  })
+  .catch(err => {
+    hideWaitMessage();
+    console.error(err);
+  });
+});
