@@ -1,0 +1,29 @@
+# Byte-compiled / cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Databases
+*.db
+*.sqlite3
+
+# Virtual environments & system files
+venv/
+.DS_Store
+
+# Env & secrets
+.env
+*.env
+firebase_admin_key.json
+firebase.json
+flask_session/
+
+# Git & Docker files
+.git/
+.gitignore
+.dockerignore
+
+# Editor folders
+.vscode/
+.idea/
