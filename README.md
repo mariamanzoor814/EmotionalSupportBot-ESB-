@@ -2,12 +2,6 @@
 
 *Empowering Emotional Well-Being Through Compassionate AI*
 
-![last commit](https://img.shields.io/github/last-commit/mariammanzoor814/EmotionalSupportBot-ESB?color=blue) 
-![languages](https://img.shields.io/github/languages/count/mariammanzoor814/EmotionalSupportBot-ESB) 
-![repo size](https://img.shields.io/github/repo-size/mariammanzoor814/EmotionalSupportBot-ESB) 
-![issues](https://img.shields.io/github/issues/mariammanzoor814/EmotionalSupportBot-ESB)
-![stars](https://img.shields.io/github/stars/mariammanzoor814/EmotionalSupportBot-ESB?style=social)
-
 Built with the tools and technologies:
 
 ![Flask](https://img.shields.io/badge/Flask-black?logo=flask&logoColor=white)
